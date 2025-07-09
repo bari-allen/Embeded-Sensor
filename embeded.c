@@ -6,3 +6,6 @@
 #include <sys/ioctl.h>
 #include <linux/i2c-dev.h>
 
+int main(int argc, char* argv[]) {
+    printf("Hello World\n");
+}
