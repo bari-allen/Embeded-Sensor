@@ -1,18 +1,4 @@
-#include <stdio.h>
-#include <stdlib.h>
-#include <stdint.h>
-#include <unistd.h>
-#include <fcntl.h>
-#include <string.h>
-#include <sys/ioctl.h>
-#include <errno.h>
-#include <linux/i2c-dev.h>
-
-#define READ_FAILED -1
-#define WRITE_FAILED -1
-#define INIT_FAILED -1
-
-#define DEVICE_ADDRESS 0x69
+#include "../include/device_io.h"
 
 static int i2c_bus = 0;
 
