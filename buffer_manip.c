@@ -2,7 +2,7 @@
 
 #define WORD_SIZE 2
 #define CRC8_POLYNOMIAL 0x31u
-#define HAS_LEADING_ONE(x) ((x & 0x80) == 0)
+#define HAS_LEADING_ONE(x) ((x & 0x80))
 
 uint8_t generate_crc(uint8_t* data) {
     uint16_t current_byte;
