@@ -140,6 +140,50 @@ int8_t read_product_name(char* name) {
     return error != 0 ? error : NOERROR;
 }
 
+int8_t read_serial_number(char* serial_number) {
+    int8_t error;
+    uint8_t buffer[48];
+    int offset = 0;
+
+    offset = add_command_to_buffer(buffer, offset, READ_SERIAL_NUMBER);
+    error = device_write(buffer, 2);
+
+    if (error != 0) {
+        return error;
+    }
+
+    (void)usleep(20000);
+
+    error = read_bytes_as_string(buffer, 32, serial_number);
+
+    return error != 0 ? error : NOERROR;
+}
+
+int8_t read_firmware(uint8_t* firmware_version) {
+    int8_t error;
+    uint8_t buffer[3];
+    int offset = 0;
+
+    offset = add_command_to_buffer(buffer, offset, READ_FIRMWARE);
+    error = device_write(buffer, 2);
+
+    if (error != 0) {
+        return error;
+    }
+
+    (void)usleep(20000);
+
+    error = read_without_crc(buffer, 2);
+
+    if (error != 0) {
+        return error;
+    }
+
+    *firmware_version = buffer[0];
+
+    return NOERROR;
+}
+
 int8_t reset(void) {
     int8_t error;
     uint8_t buffer[2];

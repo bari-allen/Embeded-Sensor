@@ -13,6 +13,8 @@
 #define STOP_MEASUREMENT 0x104
 #define READ_VALUES 0x3C4
 #define READ_NAME 0xD014
+#define READ_SERIAL_NUMBER 0xD033
+#define READ_FIRMWARE 0xD100
 #define RESET 0xD304
 
 /**
@@ -63,6 +65,22 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
  * @return an error if the device couldn't be written to or read from, else NOERROR is returned
  */
 int8_t read_product_name(char* name);
+
+/**
+ * @brief Reads the serial number of the I2C device
+ * 
+ * @param serial_number
+ * @return an error if the device couldn't be written to or read from, else NOERROR is returned
+ */
+int8_t read_serial_number(char* serial_number);
+
+/**
+ * @brief Reads the firmware version of the I2C device
+ * 
+ * @param firmware_version 
+ * @return an error if the device couldn't be written to or read from, else NOERROR is returned
+ */
+int8_t read_firmware(uint8_t* firmware_version);
 
 /**
  * @brief Software resets the device
