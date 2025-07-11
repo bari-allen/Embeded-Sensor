@@ -4,7 +4,19 @@
 #include <strings.h>
 
 void signal_handler(int signum) {
+    int error;
+
     printf("\nClosing I2C File\n");
+
+    error = stop_measurement();
+    if (error != NOERROR) {
+        printf("Failed to stop measurements");
+        device_free();
+        exit(error);
+    }
+
+    printf("Stopped  Measurements\n");
+
     device_free();
     exit(0);
 }
@@ -20,7 +32,6 @@ int main(int argc, char* argv[]) {
         printf("Device Failed to Initialize\n");
         return error;
     }
-    printf("Device initialized successfully!\n");
 
     for (int i = 1; i < argc; ++i) {
         if(strcmp(argv[i], "--reset") == 0) {
@@ -115,14 +126,4 @@ int main(int argc, char* argv[]) {
         printf("NOx Index: %f\n", NOx);
         sleep(5);
     }
-
-    error = stop_measurement();
-    if (error != NOERROR) {
-        printf("Failed to stop measurements");
-        device_free();
-        return error;
-    }
-
-
-    device_free();
 }
