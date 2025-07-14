@@ -8,6 +8,8 @@
 #include <unistd.h>
 #include <math.h>
 
+#define MAX_RETRIES 1
+
 #define DATA_READY_FLAG 0x202
 #define START_MEASUREMENT 0x21
 #define STOP_MEASUREMENT 0x104
@@ -57,7 +59,14 @@ int8_t read_data_flag(bool* is_ready);
 int8_t read_measured_values(float* mass_concentration_1, float* mass_concentration_2_5, 
                             float* mass_concentration_4, float* mass_concentration_10, 
                             float* humidity, float* temperature, float* VOC, float* NOx);
-
+/**
+ * @brief Reads the data the device has ready into the inputted buffer
+ * 
+ * Similar to the read_measured_values() function but reads into a buffer instead
+ * 
+ * @param data a float buffer with size of AT LEAST 8
+ * @return error if the device couldn't be written or read from, else NOERROR is returned
+ */
 int8_t read_into_buffer(float* data);
 
 /**

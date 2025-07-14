@@ -9,6 +9,7 @@
 #include <cjson/cJSON.h>
 #include <signal.h>
 #include "../include/address.h"
+#include <time.h>
 
 #define CLIENTID "sensor_pub"
 #define TOPIC "sensors/data"
@@ -16,19 +17,32 @@
 #define TIMEOUT 10000L
 
 MQTTClient_deliveryToken delivered_token;
+FILE* log_file;
+
+void print_timestamp(void) {
+    time_t raw_time;
+    struct tm* time_info;
+
+    time(&raw_time);
+    time_info = localtime(&raw_time);
+    fprintf(log_file, "Timestamp: %s", asctime(time_info));
+}
 
 //Handles when the user presses CTRL + C to stop the program
 void signal_handler(int signum) {
     int error;
 
     if ((error = stop_measurement()) != NOERROR) {
-        printf("\nFailed to stop measurements\n");
+        print_timestamp();
+        fprintf(log_file, "\nFailed to stop measurements," 
+            "exited with error %d\n", error);
         goto safe_exit;
     }
 
-    printf("\nStopped Measurements\n");
+    //printf("\nStopped Measurements\n");
 
     safe_exit:
+        fclose(log_file);
         device_free();
         exit(error);
 }
@@ -70,11 +84,15 @@ int msgarrvd(void* context, char* topic_name, int topic_len, MQTTClient_message*
 }
 
 void connlost(void* context, char* cause) {
-    printf("\nConnection Lost!\n");
-    printf("cause: %s\n", cause);
+    print_timestamp();
+    fprintf(log_file, "\nConnection Lost!\nCause: %s\n", cause);
 }
 
 int main(int argc, char* argv[]) {
+    if ((log_file = fopen("log.txt", "a")) == NULL) {
+        printf("Could not open log file!\n");
+        exit(1);
+    }
     //Handles when then user pressed CTRL + C
     signal(SIGINT, signal_handler);
 
@@ -89,14 +107,16 @@ int main(int argc, char* argv[]) {
 
     if ((rc = MQTTClient_create(&client, ADDRESS, CLIENTID, 
         MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS) {
-            printf("Failed to create client, returned with code %d\n", rc);
+            print_timestamp();
+            fprintf(log_file, "Failed to create client, returned with code %d\n", rc);
             rc = EXIT_FAILURE;
             goto exit;
     }
 
     if ((rc = MQTTClient_setCallbacks(client, NULL, 
         connlost, msgarrvd, delivered)) != MQTTCLIENT_SUCCESS) {
-            printf("Failed to set callbacks, returned with code %d\n", rc);
+            print_timestamp();
+            fprintf(log_file, "Failed to set callbacks, returned with code %d\n", rc);
             rc = EXIT_FAILURE;
             goto destroy_exit;
     }
@@ -105,13 +125,15 @@ int main(int argc, char* argv[]) {
     conn_opts.cleansession = 1; //disregards state info after disconects
 
     if ((rc = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
-        printf("Failed to connect, returned with code %d\n", rc);
+        print_timestamp();
+        fprintf(log_file, "Failed to connect, returned with code %d\n", rc);
         rc = EXIT_FAILURE;
         goto destroy_exit;
     }
 
     if ((device_error = device_init(1)) == INIT_FAILED) {
-        printf("Failed to initialzied device\n");
+        print_timestamp();
+        fprintf(log_file, "Failed to initialize device, returned with code %d\n", device_error);
         rc = EXIT_FAILURE;
         goto destroy_exit;
     }
@@ -120,15 +142,16 @@ int main(int argc, char* argv[]) {
         if(strcmp(argv[i], "--reset") == 0) {
             device_error = reset();
             if ((device_error = reset()) != NOERROR) {
-                printf("Device failed to reset\n");
+                print_timestamp();
+                fprintf(log_file, "Failed to reset device, returned with code %d\n", device_error);
                 goto free_device;
             }
-            printf("Device has been reset!\n");
         }
     }
 
     if ((device_error = start_measurement()) != NOERROR) {
-        printf("Failed to start measurements");
+        print_timestamp();
+        fprintf(log_file, "Failed to start measurements, returned with code %d\n", device_error);
         rc = EXIT_FAILURE;
         goto free_device;
     }
@@ -136,7 +159,8 @@ int main(int argc, char* argv[]) {
     bool is_ready;
     do {
         if ((device_error = read_data_flag(&is_ready)) != NOERROR) {
-            printf("Failed to get device flayg\n");
+            print_timestamp();
+            fprintf(log_file,"Failed to get device data-ready flag, returned with code %d\n", device_error);
             rc = EXIT_FAILURE;
             goto free_device;
         }
@@ -148,7 +172,8 @@ int main(int argc, char* argv[]) {
         float data[8];
 
         if ((device_error = read_into_buffer(data)) != NOERROR) {
-            printf("Unable to read device data\n");
+            print_timestamp();
+            fprintf(log_file, "Failed to read device data, returned with code %d\n", device_error);
             rc = EXIT_FAILURE;
             goto free_device;
         }
@@ -164,12 +189,13 @@ int main(int argc, char* argv[]) {
 
         if ((rc = MQTTClient_publishMessage(client, TOPIC, 
             &message, &token)) != MQTTCLIENT_SUCCESS) {
-                printf("Failed to publish message, returned with code %d\n", rc);
+                print_timestamp();
+                fprintf(log_file, "Failed to publish message, returned with code %d\n", rc);
                 rc = EXIT_FAILURE;
                 goto free_device;
         } else {
-            printf("Waiting for publication of %s\n on topic %s " 
-                "for client with cliendID %s\n", payload, TOPIC, CLIENTID);
+            //printf("Waiting for publication of %s\n on topic %s " 
+                //"for client with cliendID %s\n", payload, TOPIC, CLIENTID);
 
                 while(delivered_token != token) {
                     usleep(TIMEOUT);
@@ -181,13 +207,15 @@ int main(int argc, char* argv[]) {
     }   
 
     if ((rc = MQTTClient_disconnect(client, TIMEOUT)) != MQTTCLIENT_SUCCESS) {
-        printf("Failed to disconnect, returned with code %d\n", rc);
+        print_timestamp();
+        fprintf(log_file, "Failed to disconnect, returned with code %d\n", rc);
         rc = EXIT_FAILURE;
     }
 
     free_device:
         if ((device_error = stop_measurement()) != NOERROR) {
-            printf("Failed to stop measurements\n");
+            print_timestamp();
+            fprintf(log_file, "Failed to stop measurements, returned with code %d\n", device_error);
         }
         device_free();
 
@@ -195,6 +223,7 @@ int main(int argc, char* argv[]) {
         MQTTClient_destroy(&client);
 
     exit:
+        fclose(log_file);
         return rc;
 }
 

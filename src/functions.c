@@ -61,26 +61,36 @@ int8_t read_data_flag(bool* is_ready) {
 int8_t read_measured_values(float* mass_concentration_1, float* mass_concentration_2_5, 
                             float* mass_concentration_4, float* mass_concentration_10, 
                             float* humidity, float* temperature, float* VOC, float* NOx) {
-
     const uint16_t INVALID_UINT = 0xFFFF;
     const int16_t INVALID_INT = 0x7FFF;
-    
-    int8_t error;
+    uint8_t retries = 0;
     uint8_t buffer[24];
-    int offset = 0;
+    
+    while (retries < MAX_RETRIES) {
+        int8_t error;
+        int offset = 0;
 
-    offset = add_command_to_buffer(buffer, offset, READ_VALUES);
-    error = device_write(buffer, 2);
+        offset = add_command_to_buffer(buffer, offset, READ_VALUES);
+        error = device_write(buffer, 2);
 
-    if (error != 0) {
-        return error;
-    }
+        if (error != 0) {
+            return error;
+        }
 
-    (void)usleep(20000);
+        (void)usleep(20000);
 
-    error = read_without_crc(buffer, 16);
-    if (error != 0) {
-        return error;
+        error = read_without_crc(buffer, 16);
+
+        if (error == CRCERROR) {
+            ++retries;
+            continue;
+        }
+
+        if (error != 0) {
+            return error;
+        }
+
+        break;
     }
 
     uint16_t mass_concentration_1_uint16 = read_bytes_as_uint16(&buffer[0]);
@@ -124,21 +134,31 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
 int8_t read_into_buffer(float* data) {
     const uint16_t INVALID_UINT = 0xFFFF;
     const int16_t INVALID_INT = 0x7FFF;
-    
-    int8_t error;
+    uint8_t retries = 0;
     uint8_t buffer[24];
-    int offset = 0;
+    int8_t error;
+    int offset;
+    
+    while (retries < MAX_RETRIES) {
+        offset = 0;
 
-    offset = add_command_to_buffer(buffer, offset, READ_VALUES);
-    error = device_write(buffer, 2);
+        offset = add_command_to_buffer(buffer, offset, READ_VALUES);
+        error = device_write(buffer, 2);
 
-    if (error != 0) {
-        return error;
+        if (error != 0) {
+            return error;
+        }
+
+        (void)usleep(20000);
+
+        if ((error = read_without_crc(buffer, 16)) == CRCERROR) {
+            ++retries;
+            continue;
+        }
+        
+        break;
     }
 
-    (void)usleep(20000);
-
-    error = read_without_crc(buffer, 16);
     if (error != 0) {
         return error;
     }

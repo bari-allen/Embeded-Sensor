@@ -11,9 +11,9 @@
 #include <errno.h>
 #include <linux/i2c-dev.h>
 
-#define READ_FAILED -1
-#define WRITE_FAILED -1
-#define INIT_FAILED -1
+#define READ_FAILED -4
+#define WRITE_FAILED -5
+#define INIT_FAILED -6
 
 #define DEVICE_ADDRESS 0x69
 
