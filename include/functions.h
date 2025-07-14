@@ -58,6 +58,8 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
                             float* mass_concentration_4, float* mass_concentration_10, 
                             float* humidity, float* temperature, float* VOC, float* NOx);
 
+int8_t read_into_buffer(float* data);
+
 /**
  * @brief Reads the name of the device
  * 

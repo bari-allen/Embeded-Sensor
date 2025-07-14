@@ -121,6 +121,65 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
     return NOERROR;
 }
 
+int8_t read_into_buffer(float* data) {
+    const uint16_t INVALID_UINT = 0xFFFF;
+    const int16_t INVALID_INT = 0x7FFF;
+    
+    int8_t error;
+    uint8_t buffer[24];
+    int offset = 0;
+
+    offset = add_command_to_buffer(buffer, offset, READ_VALUES);
+    error = device_write(buffer, 2);
+
+    if (error != 0) {
+        return error;
+    }
+
+    (void)usleep(20000);
+
+    error = read_without_crc(buffer, 16);
+    if (error != 0) {
+        return error;
+    }
+
+    uint16_t mass_concentration_1_uint16 = read_bytes_as_uint16(&buffer[0]);
+    uint16_t mass_concentration_2_5_uint16 = read_bytes_as_uint16(&buffer[2]);
+    uint16_t mass_concentration_4_uint16 = read_bytes_as_uint16(&buffer[4]);
+    uint16_t mass_concentration_10_uint16 = read_bytes_as_uint16(&buffer[6]);
+    uint16_t humidity_uint16 = read_bytes_as_uint16(&buffer[8]);
+    int16_t temperature_int16 = read_bytes_as_int16(&buffer[10]);
+    uint16_t VOC_uint16 = read_bytes_as_uint16(&buffer[12]);
+    uint16_t NOx_uint16 = read_bytes_as_uint16(&buffer[14]);
+
+    data[0] = mass_concentration_1_uint16 == INVALID_UINT 
+                                        ? NAN 
+                                        : mass_concentration_1_uint16 / 10.0F;
+    data[1] = mass_concentration_2_5_uint16 == INVALID_UINT 
+                                        ? NAN 
+                                        : mass_concentration_2_5_uint16 / 10.0F;
+    data[2] = mass_concentration_4_uint16 == INVALID_UINT 
+                                        ? NAN 
+                                        : mass_concentration_4_uint16 / 10.0F;
+    data[3] = mass_concentration_10_uint16 == INVALID_UINT  
+                                        ? NAN 
+                                        : mass_concentration_10_uint16 / 10.0F;
+    data[4] = humidity_uint16 == INVALID_UINT 
+                            ? NAN 
+                            : humidity_uint16 / 100.0F;
+    data[5] = temperature_int16 == INVALID_INT 
+                            ? NAN 
+                            : ((temperature_int16 / 200.0F) * 1.8F) + 32;
+    data[6] = VOC_uint16 == INVALID_UINT 
+                        ? NAN 
+                        : VOC_uint16 / 10.0F;
+    data[7] = NOx_uint16 == INVALID_UINT 
+                        ? NAN 
+                        : NOx_uint16 / 10.0F;
+
+    return NOERROR;
+}
+
 int8_t read_product_name(char* name) {
     int8_t error;
     uint8_t buffer[48];

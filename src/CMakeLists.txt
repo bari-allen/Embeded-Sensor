@@ -1,3 +1,7 @@
+set(CMAKE_PREFIX_PATH "/usr/local")
+find_package(eclipse-paho-mqtt-c REQUIRED)
+find_package(cJSON REQUIRED)
+
 # Add the library sources
 add_library(buffer_manip_lib buffer_manip.c)
 add_library(device_io_lib device_io.c)
@@ -10,8 +14,9 @@ target_include_directories(functions_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 
 # Main executable
 add_executable(main main.c)
-set_target_properties(main PROPERTIES C_STANDARD 11)
-set_target_properties(main PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+add_executable(publisher publisher.c)
+set_target_properties(main publisher PROPERTIES C_STANDARD 11)
+set_target_properties(main publisher PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
 
 # Link the libraries
 target_link_libraries(main
@@ -19,6 +24,14 @@ target_link_libraries(main
     device_io_lib
     functions_lib
 )
+
+target_link_libraries(publisher
+    buffer_manip_lib
+    device_io_lib
+    functions_lib
+    eclipse-paho-mqtt-c::paho-mqtt3c
+    cjson
+    )
 
 target_link_libraries(functions_lib PUBLIC buffer_manip_lib)
 
