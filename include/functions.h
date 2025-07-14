@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <math.h>
 
-#define MAX_RETRIES 1
+#define MAX_RETRIES 4
 
 #define DATA_READY_FLAG 0x202
 #define START_MEASUREMENT 0x21
