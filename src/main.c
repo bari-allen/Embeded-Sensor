@@ -116,14 +116,14 @@ int main(int argc, char* argv[]) {
             return error;
         }
         printf("****************************************************************************\n");
-        printf("Mass Concentration PM1.0: %.2f ug/m^3\n", m_c_1);
-        printf("Mass Concentration PM2.5: %.2f ug/m^3\n", m_c_2_5);
-        printf("Mass Concentration PM4.0: %.2f ug/m^3\n", m_c_4);
-        printf("Mass Concentration PM10: %.2f ug/m^3\n", m_c_10);
-        printf("Ambient Humidity: %.2f %%RH\n", humidity);
-        printf("Temperature: %.2fF\n", temp);
-        printf("VOC Index: %.2f\n", VOC);
-        printf("NOx Index: %.2f\n", NOx);
+        printf("Mass Concentration PM1.0: %f ug/m^3\n", m_c_1);
+        printf("Mass Concentration PM2.5: %f ug/m^3\n", m_c_2_5);
+        printf("Mass Concentration PM4.0: %f ug/m^3\n", m_c_4);
+        printf("Mass Concentration PM10: %f ug/m^3\n", m_c_10);
+        printf("Ambient Humidity: %f %%RH\n", humidity);
+        printf("Temperature in Fahrenheit is: %f\n", temp);
+        printf("VOC Index: %f\n", VOC);
+        printf("NOx Index: %f\n", NOx);
         sleep(5);
     }
 }
