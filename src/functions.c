@@ -97,10 +97,10 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
     uint16_t mass_concentration_2_5_uint16 = read_bytes_as_uint16(&buffer[2]);
     uint16_t mass_concentration_4_uint16 = read_bytes_as_uint16(&buffer[4]);
     uint16_t mass_concentration_10_uint16 = read_bytes_as_uint16(&buffer[6]);
-    uint16_t humidity_uint16 = read_bytes_as_uint16(&buffer[8]);
+    int16_t humidity_uint16 = read_bytes_as_int16(&buffer[8]);
     int16_t temperature_int16 = read_bytes_as_int16(&buffer[10]);
-    uint16_t VOC_uint16 = read_bytes_as_uint16(&buffer[12]);
-    uint16_t NOx_uint16 = read_bytes_as_uint16(&buffer[14]);
+    int16_t VOC_uint16 = read_bytes_as_int16(&buffer[12]);
+    int16_t NOx_uint16 = read_bytes_as_int16(&buffer[14]);
     
     *mass_concentration_1 = mass_concentration_1_uint16 == INVALID_UINT 
                                                         ? NAN 
@@ -115,16 +115,16 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
                                                         ? NAN 
                                                         : mass_concentration_10_uint16 / 10.0F;
 
-    *humidity = humidity_uint16 == INVALID_UINT 
+    *humidity = humidity_uint16 == INVALID_INT 
                                 ? NAN 
                                 : humidity_uint16/ 100.0F;
     *temperature = temperature_int16 == INVALID_INT 
                                 ? NAN 
                                 : ((temperature_int16 / 200.0F) * 1.8F) + 32;
-    *VOC = VOC_uint16 == INVALID_UINT 
+    *VOC = VOC_uint16 == INVALID_INT 
                                 ? NAN 
                                 : VOC_uint16 / 10.0F;
-    *NOx = NOx_uint16 == INVALID_UINT 
+    *NOx = NOx_uint16 == INVALID_INT 
                                 ? NAN 
                                 : NOx_uint16 / 10.0F;
 
@@ -167,10 +167,10 @@ int8_t read_into_buffer(float* data) {
     uint16_t mass_concentration_2_5_uint16 = read_bytes_as_uint16(&buffer[2]);
     uint16_t mass_concentration_4_uint16 = read_bytes_as_uint16(&buffer[4]);
     uint16_t mass_concentration_10_uint16 = read_bytes_as_uint16(&buffer[6]);
-    uint16_t humidity_uint16 = read_bytes_as_uint16(&buffer[8]);
+    int16_t humidity_uint16 = read_bytes_as_int16(&buffer[8]);
     int16_t temperature_int16 = read_bytes_as_int16(&buffer[10]);
-    uint16_t VOC_uint16 = read_bytes_as_uint16(&buffer[12]);
-    uint16_t NOx_uint16 = read_bytes_as_uint16(&buffer[14]);
+    int16_t VOC_uint16 = read_bytes_as_int16(&buffer[12]);
+    int16_t NOx_uint16 = read_bytes_as_int16(&buffer[14]);
 
     data[0] = mass_concentration_1_uint16 == INVALID_UINT 
                                         ? NAN 
@@ -184,16 +184,16 @@ int8_t read_into_buffer(float* data) {
     data[3] = mass_concentration_10_uint16 == INVALID_UINT  
                                         ? NAN 
                                         : mass_concentration_10_uint16 / 10.0F;
-    data[4] = humidity_uint16 == INVALID_UINT 
+    data[4] = humidity_uint16 == INVALID_INT 
                             ? NAN 
                             : humidity_uint16 / 100.0F;
     data[5] = temperature_int16 == INVALID_INT 
                             ? NAN 
                             : ((temperature_int16 / 200.0F) * 1.8F) + 32;
-    data[6] = VOC_uint16 == INVALID_UINT 
+    data[6] = VOC_uint16 == INVALID_INT 
                         ? NAN 
                         : VOC_uint16 / 10.0F;
-    data[7] = NOx_uint16 == INVALID_UINT 
+    data[7] = NOx_uint16 == INVALID_INT 
                         ? NAN 
                         : NOx_uint16 / 10.0F;
 
