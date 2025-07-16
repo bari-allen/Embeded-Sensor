@@ -253,7 +253,7 @@ int main(int argc, char* argv[]) {
         goto free_device;
     }
 
-    //Handles when then user pressed CTRL + C
+    //Handles when the user presses CTRL + C
     signal(SIGINT, signal_handler);
 
     do {
