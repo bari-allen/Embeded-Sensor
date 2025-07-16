@@ -22,9 +22,15 @@ FILE* log_file;
 void print_timestamp(void) {
     time_t raw_time;
     struct tm* time_info;
+    struct tm* result;
 
     time(&raw_time);
-    time_info = localtime(&raw_time);
+    time_info = localtime_r(&raw_time, result);
+
+    if (time_info == NULL) {
+        perror("Failed to get local time\n");
+    }
+
     fprintf(log_file, "Timestamp: %s", asctime(time_info));
 }
 
