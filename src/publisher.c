@@ -10,6 +10,7 @@
 #include <signal.h>
 #include "../include/address.h"
 #include <time.h>
+#include <regex.h>
 
 #define CLIENTID "sensor_pub"
 #define TOPIC "sensors/data"
@@ -94,8 +95,47 @@ void connlost(void* context, char* cause) {
     fprintf(log_file, "\nConnection Lost!\nCause: %s\n", cause);
 }
 
+int validate_log_file(const char* const log_filename) {
+    regex_t regex;
+    const char* regex_string = "^[^\\.\\/]+\\.txt$";
+    int value;
+
+    if ((value = regcomp(&regex, regex_string, REG_EXTENDED | REG_NOSUB) != 0)) {
+        fprintf(stderr, "Regex failed to compile\n");
+        exit(EXIT_FAILURE);
+    }
+
+    value = regexec(&regex, log_filename, 0, NULL, 0);
+
+    regfree(&regex);
+
+    return value;
+}
+
 int main(int argc, char* argv[]) {
-    if ((log_file = fopen("log.txt", "a")) == NULL) {
+    bool reset_flag = false;
+    char* log_filename = "log.txt";
+
+    int option;
+    while ((option = getopt(argc, argv, "rl:")) != -1) {
+        switch(option) {
+            case 'r': 
+                reset_flag = true; 
+                break;
+            case 'l': 
+                if (validate_log_file(optarg) == 0) {
+                    log_filename = optarg;
+                }
+                break;
+            case '?': 
+                fprintf(stderr, "Unknown option character %s'.\n", optarg);
+                exit(EXIT_FAILURE);
+        }
+    }
+    
+    
+
+    if ((log_file = fopen(log_filename, "a")) == NULL) {
         printf("Could not open log file!\n");
         exit(1);
     }
@@ -144,16 +184,14 @@ int main(int argc, char* argv[]) {
         goto destroy_exit;
     }
 
-    for (int i = 1; i < argc; ++i) {
-        if(strcmp(argv[i], "--reset") == 0) {
-            device_error = reset();
-            if ((device_error = reset()) != NOERR) {
-                print_timestamp();
-                fprintf(log_file, "Failed to reset device, returned with code %d\n", device_error);
-                goto free_device;
-            }
+    if (reset_flag) {
+        if ((device_error = reset() != NOERR)) {
+            print_timestamp();
+            fprintf(log_file, "Failed to reset device, returned with code %d\n", device_error);
+            goto free_device;
         }
     }
+
 
     if ((device_error = start_measurement()) != NOERR) {
         print_timestamp();
