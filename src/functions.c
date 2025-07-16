@@ -1,5 +1,8 @@
 #include "../include/functions.h"
 
+/*******************************************************************************
+*                           Function Implementations                           *
+*******************************************************************************/
 
 int8_t start_measurement(void) {
     int8_t error;
@@ -15,7 +18,7 @@ int8_t start_measurement(void) {
 
     usleep(100000);
 
-    return NOERROR;
+    return NOERR;
 }
 
 int8_t stop_measurement(void) {
@@ -32,7 +35,7 @@ int8_t stop_measurement(void) {
 
     usleep(1000000);
 
-    return NOERROR;
+    return NOERR;
 }
 
 int8_t read_data_flag(bool* is_ready) {
@@ -55,7 +58,7 @@ int8_t read_data_flag(bool* is_ready) {
     }
 
     *is_ready = buffer[1];
-    return NOERROR;
+    return NOERR;
 }
 
 int8_t read_measured_values(float* mass_concentration_1, float* mass_concentration_2_5, 
@@ -81,7 +84,7 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
 
         error = read_without_crc(buffer, 16);
 
-        if (error == CRCERROR) {
+        if (error == CRC_ERR) {
             ++retries;
             continue;
         }
@@ -128,10 +131,10 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
                                 ? NAN 
                                 : NOx_uint16 / 10.0F;
 
-    return NOERROR;
+    return NOERR;
 }
 
-int8_t read_into_buffer(float* data) {
+int8_t read_into_buffer(float* data, size_t buffer_size) {
     const uint16_t INVALID_UINT = 0xFFFF;
     const int16_t INVALID_INT = 0x7FFF;
     uint8_t retries = 0;
@@ -139,6 +142,10 @@ int8_t read_into_buffer(float* data) {
     int8_t error;
     int offset;
     
+    if (buffer_size != NUM_DATAPOINTS) {
+        return SIZE_ERR;
+    }
+
     while (retries < MAX_RETRIES) {
         offset = 0;
 
@@ -151,7 +158,7 @@ int8_t read_into_buffer(float* data) {
 
         (void)usleep(20000);
 
-        if ((error = read_without_crc(buffer, 16)) == CRCERROR) {
+        if ((error = read_without_crc(buffer, 16)) == CRC_ERR) {
             ++retries;
             continue;
         }
@@ -197,13 +204,17 @@ int8_t read_into_buffer(float* data) {
                         ? NAN 
                         : NOx_uint16 / 10.0F;
 
-    return NOERROR;
+    return NOERR;
 }
 
-int8_t read_product_name(char* name) {
+int8_t read_product_name(char* name, size_t name_length) {
     int8_t error;
     uint8_t buffer[48];
     int offset = 0;
+
+    if (name_length != MAX_NAME_CHARS) {
+        return SIZE_ERR;
+    }
 
     offset = add_command_to_buffer(buffer, offset, READ_NAME);
     error = device_write(buffer, 2);
@@ -216,13 +227,17 @@ int8_t read_product_name(char* name) {
 
     error = read_bytes_as_string(buffer, 32, name);
     
-    return error != 0 ? error : NOERROR;
+    return error != 0 ? error : NOERR;
 }
 
-int8_t read_serial_number(char* serial_number) {
+int8_t read_serial_number(char* serial_number, size_t number_length) {
     int8_t error;
     uint8_t buffer[48];
     int offset = 0;
+
+    if (number_length != MAX_NAME_CHARS) {
+        return SIZE_ERR;
+    }
 
     offset = add_command_to_buffer(buffer, offset, READ_SERIAL_NUMBER);
     error = device_write(buffer, 2);
@@ -235,7 +250,7 @@ int8_t read_serial_number(char* serial_number) {
 
     error = read_bytes_as_string(buffer, 32, serial_number);
 
-    return error != 0 ? error : NOERROR;
+    return error != 0 ? error : NOERR;
 }
 
 int8_t read_firmware(uint8_t* firmware_version) {
@@ -260,7 +275,7 @@ int8_t read_firmware(uint8_t* firmware_version) {
 
     *firmware_version = buffer[0];
 
-    return NOERROR;
+    return NOERR;
 }
 
 int8_t reset(void) {
@@ -277,5 +292,5 @@ int8_t reset(void) {
 
     (void)usleep(200000);
 
-    return NOERROR;
+    return NOERR;
 }

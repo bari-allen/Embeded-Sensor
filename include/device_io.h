@@ -9,13 +9,18 @@
 #include <string.h>
 #include <sys/ioctl.h>
 #include <errno.h>
+#include "errors.h"
 #include <linux/i2c-dev.h>
 
-#define READ_FAILED -4
-#define WRITE_FAILED -5
-#define INIT_FAILED -6
+/*******************************************************************************
+*                              Defined Constants                               *
+*******************************************************************************/
 
 #define DEVICE_ADDRESS 0x69
+
+/*******************************************************************************
+*                            Function Definitions                              *
+*******************************************************************************/
 
 /**
  * @brief Initializes the hardware and software components of the given I2C adapter

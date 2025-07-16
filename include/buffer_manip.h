@@ -3,16 +3,20 @@
 
 #include <stdint.h>
 #include "device_io.h"
+#include "errors.h"
+
+/*******************************************************************************
+*                              Defined Constants                               *
+*******************************************************************************/
 
 #define WORD_SIZE 2
 #define CRC8_POLYNOMIAL 0x31u
 #define CRC_LENGTH 1
 #define HAS_LEADING_ONE(x) ((x & 0x80) == 0x80)
 
-#define CRCERROR -1
-#define NOERROR 0
-#define OFFSET_ERROR -3
-#define MALLOC_ERR -2
+/*******************************************************************************
+*                           Function Definitions                               *
+*******************************************************************************/
 
 /**
  * @brief Generates the CRC from the first two item in the buffer

@@ -32,7 +32,7 @@ void print_timestamp(void) {
 void signal_handler(int signum) {
     int error;
 
-    if ((error = stop_measurement()) != NOERROR) {
+    if ((error = stop_measurement()) != NOERR) {
         print_timestamp();
         fprintf(log_file, "\nFailed to stop measurements," 
             "exited with error %d\n", error);
@@ -131,7 +131,7 @@ int main(int argc, char* argv[]) {
         goto destroy_exit;
     }
 
-    if ((device_error = device_init(1)) == INIT_FAILED) {
+    if ((device_error = device_init(1)) == INIT_ERR) {
         print_timestamp();
         fprintf(log_file, "Failed to initialize device, returned with code %d\n", device_error);
         rc = EXIT_FAILURE;
@@ -141,7 +141,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         if(strcmp(argv[i], "--reset") == 0) {
             device_error = reset();
-            if ((device_error = reset()) != NOERROR) {
+            if ((device_error = reset()) != NOERR) {
                 print_timestamp();
                 fprintf(log_file, "Failed to reset device, returned with code %d\n", device_error);
                 goto free_device;
@@ -149,7 +149,7 @@ int main(int argc, char* argv[]) {
         }
     }
 
-    if ((device_error = start_measurement()) != NOERROR) {
+    if ((device_error = start_measurement()) != NOERR) {
         print_timestamp();
         fprintf(log_file, "Failed to start measurements, returned with code %d\n", device_error);
         rc = EXIT_FAILURE;
@@ -158,7 +158,7 @@ int main(int argc, char* argv[]) {
 
     bool is_ready;
     do {
-        if ((device_error = read_data_flag(&is_ready)) != NOERROR) {
+        if ((device_error = read_data_flag(&is_ready)) != NOERR) {
             print_timestamp();
             fprintf(log_file,"Failed to get device data-ready flag, returned with code %d\n", device_error);
             rc = EXIT_FAILURE;
@@ -169,9 +169,9 @@ int main(int argc, char* argv[]) {
     while (1) {
         char* payload;
         cJSON* root = cJSON_CreateObject();
-        float data[8];
+        float data[NUM_DATAPOINTS];
 
-        if ((device_error = read_into_buffer(data)) != NOERROR) {
+        if ((device_error = read_into_buffer(data, NUM_DATAPOINTS)) != NOERR) {
             print_timestamp();
             fprintf(log_file, "Failed to read device data, returned with code %d\n", device_error);
             rc = EXIT_FAILURE;
@@ -203,6 +203,7 @@ int main(int argc, char* argv[]) {
         }
 
         free(payload);
+        payload = NULL;
         sleep(5);
     }   
 
@@ -213,7 +214,7 @@ int main(int argc, char* argv[]) {
     }
 
     free_device:
-        if ((device_error = stop_measurement()) != NOERROR) {
+        if ((device_error = stop_measurement()) != NOERR) {
             print_timestamp();
             fprintf(log_file, "Failed to stop measurements, returned with code %d\n", device_error);
         }

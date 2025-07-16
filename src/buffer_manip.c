@@ -1,5 +1,9 @@
 #include "../include/buffer_manip.h"
 
+/*******************************************************************************
+*                           Function Implementations                           *
+*******************************************************************************/
+
 uint8_t generate_crc(uint8_t* data) {
     uint16_t current_byte;
     uint8_t crc = 0xFF;
@@ -21,10 +25,10 @@ uint8_t generate_crc(uint8_t* data) {
 
 int8_t check_crc(uint8_t* data, uint8_t checksum) {
     if (generate_crc(data) != checksum) {
-        return CRCERROR;
+        return CRC_ERR;
     }
 
-    return NOERROR;
+    return NOERR;
 }
 
 uint16_t add_uint32_to_buffer(uint8_t* buffer, uint32_t offset, uint32_t data) {
@@ -54,7 +58,7 @@ int8_t read_without_crc(uint8_t* buffer, uint16_t expected_size) {
     uint16_t size = (expected_size / WORD_SIZE) * (WORD_SIZE + CRC_LENGTH);
 
     if (expected_size % WORD_SIZE != 0) {
-        return OFFSET_ERROR;
+        return OFFSET_ERR;
     }
 
     error = device_read(buffer, size);
@@ -72,7 +76,7 @@ int8_t read_without_crc(uint8_t* buffer, uint16_t expected_size) {
         buffer[j++] = buffer[i + 1];
     }
 
-    return NOERROR;
+    return NOERR;
 }
 
 uint16_t read_bytes_as_uint16(uint8_t* buffer) {
@@ -103,5 +107,5 @@ int8_t read_bytes_as_string(uint8_t* buffer, uint16_t expected_size, char* name)
         if (buffer[i] == '\0') {break;}
     }
 
-    return NOERROR;
+    return NOERR;
 }

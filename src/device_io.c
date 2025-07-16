@@ -2,6 +2,9 @@
 
 static int i2c_bus = 0;
 
+/*******************************************************************************
+*                          Function Implementations                            *
+*******************************************************************************/
 
 int device_init(uint32_t adapter_num) {
     char filename[20];
@@ -9,11 +12,11 @@ int device_init(uint32_t adapter_num) {
     i2c_bus = open(filename, O_RDWR);
 
     if (i2c_bus < 0) {
-        return INIT_FAILED;
+        return INIT_ERR;
     }
 
     if (ioctl(i2c_bus, I2C_SLAVE, DEVICE_ADDRESS) < 0) {
-        return INIT_FAILED;
+        return INIT_ERR;
     }
 
     return 0;
@@ -29,7 +32,7 @@ void device_free(void) {
 
 int8_t device_write(uint8_t* data, uint16_t count) {
     if (write(i2c_bus, data, count) != count) {
-        return WRITE_FAILED;
+        return WRITE_ERR;
     }
 
     return 0;
@@ -37,7 +40,7 @@ int8_t device_write(uint8_t* data, uint16_t count) {
 
 int8_t device_read(uint8_t* data, uint16_t count) {
     if (read(i2c_bus, data, count) != count) {
-        return READ_FAILED;
+        return READ_ERR;
     }
 
     return 0;

@@ -9,7 +9,7 @@ void signal_handler(int signum) {
     printf("\nClosing I2C File\n");
 
     error = stop_measurement();
-    if (error != NOERROR) {
+    if (error != NOERR) {
         printf("Failed to stop measurements");
         device_free();
         exit(error);
@@ -28,7 +28,7 @@ int main(int argc, char* argv[]) {
     int error;
 
     error = device_init(1);
-    if (error == INIT_FAILED) {
+    if (error == INIT_ERR) {
         printf("Device Failed to Initialize\n");
         return error;
     }
@@ -36,7 +36,7 @@ int main(int argc, char* argv[]) {
     for (int i = 1; i < argc; ++i) {
         if(strcmp(argv[i], "--reset") == 0) {
             error = reset();
-            if (error != NOERROR) {
+            if (error != NOERR) {
                 printf("Device failed to reset");
                 device_free();
                 return error;
@@ -46,8 +46,8 @@ int main(int argc, char* argv[]) {
     }
 
     char name[32];
-    error = read_product_name(name);
-    if (error != NOERROR) {
+    error = read_product_name(name, 32);
+    if (error != NOERR) {
         printf("Failed to read product name!\n");
         device_free();
         return error;
@@ -56,8 +56,8 @@ int main(int argc, char* argv[]) {
     printf("The Product Name is: %s\n", name);
 
     char serial_number[32];
-    error = read_serial_number(serial_number);
-    if (error != NOERROR) {
+    error = read_serial_number(serial_number, 32);
+    if (error != NOERR) {
         printf("Failed to read serial number!\n");
         device_free();
         return error;
@@ -67,7 +67,7 @@ int main(int argc, char* argv[]) {
 
     uint8_t firmware_version;
     error = read_firmware(&firmware_version);
-    if (error != NOERROR) {
+    if (error != NOERR) {
         printf("Failed to read firmware version\n");
         device_free();
         return error;
@@ -77,7 +77,7 @@ int main(int argc, char* argv[]) {
 
 
     error = start_measurement();
-    if (error != NOERROR) {
+    if (error != NOERR) {
         printf("Failed to start measurements");
         device_free();
         return error;
@@ -88,7 +88,7 @@ int main(int argc, char* argv[]) {
     bool is_ready;
     do {
         error = read_data_flag(&is_ready);
-        if (error != NOERROR) {
+        if (error != NOERR) {
             printf("Failed to get data!\n");
             device_free();
             return error;
@@ -110,7 +110,7 @@ int main(int argc, char* argv[]) {
             &m_c_10, &humidity, &temp, 
             &VOC, &NOx);
 
-        if (error != NOERROR) {
+        if (error != NOERR) {
             printf("Failed to read data\n");
             device_free();
             return error;

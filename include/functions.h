@@ -4,12 +4,20 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "buffer_manip.h"
+#include "errors.h"
 #include "device_io.h"
 #include <unistd.h>
 #include <math.h>
 
-#define MAX_RETRIES 4
+/*******************************************************************************
+*                              Defined Constants                               *
+*******************************************************************************/
 
+#define MAX_RETRIES 4
+#define MAX_NAME_CHARS 32
+#define NUM_DATAPOINTS 8
+
+//Device Address Pointers
 #define DATA_READY_FLAG 0x202
 #define START_MEASUREMENT 0x21
 #define STOP_MEASUREMENT 0x104
@@ -18,6 +26,10 @@
 #define READ_SERIAL_NUMBER 0xD033
 #define READ_FIRMWARE 0xD100
 #define RESET 0xD304
+
+/*******************************************************************************
+*                           Function Definitions                               *
+*******************************************************************************/
 
 /**
  * @brief Transitions the device to Measurement-Mode to allow for the data to be read
@@ -65,25 +77,28 @@ int8_t read_measured_values(float* mass_concentration_1, float* mass_concentrati
  * Similar to the read_measured_values() function but reads into a buffer instead
  * 
  * @param data a float buffer with size of AT LEAST 8
+ * @param buffer_size the size of the data buffer, MUST BE 8 FLOATS
  * @return error if the device couldn't be written or read from, else NOERROR is returned
  */
-int8_t read_into_buffer(float* data);
+int8_t read_into_buffer(float* data, size_t buffer_size);
 
 /**
  * @brief Reads the name of the device
  * 
  * @param name the out parameter containing the device's name
+ * @param name_length the size of the name array, MUST BE 32 CHARACTERS
  * @return an error if the device couldn't be written to or read from, else NOERROR is returned
  */
-int8_t read_product_name(char* name);
+int8_t read_product_name(char* name, size_t name_length);
 
 /**
  * @brief Reads the serial number of the I2C device
  * 
  * @param serial_number
+ * @param number_length the size of the serial_number array, MUST BE 32 CHARACTERS
  * @return an error if the device couldn't be written to or read from, else NOERROR is returned
  */
-int8_t read_serial_number(char* serial_number);
+int8_t read_serial_number(char* serial_number, size_t number_length);
 
 /**
  * @brief Reads the firmware version of the I2C device
