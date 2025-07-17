@@ -1,4 +1,5 @@
 #include <MQTTClientPersistence.h>
+#include <MQTTReasonCodes.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -18,6 +19,7 @@
 #define TIMEOUT 10000L
 
 MQTTClient_deliveryToken delivered_token;
+volatile sig_atomic_t sigint_recieved = 0;
 FILE* log_file;
 
 /**
@@ -26,17 +28,18 @@ FILE* log_file;
  */
 void print_timestamp(void) {
     time_t raw_time;
-    struct tm* time_info;
-    struct tm* result = NULL;
+    struct tm time_info;
+    struct tm* result;
 
     time(&raw_time);
-    time_info = localtime_r(&raw_time, result);
+    result = localtime_r(&raw_time, &time_info);
 
-    if (time_info == NULL) {
-        perror("Failed to get local time\n");
+    if (result == NULL) {
+        perror("Failed to get local time");
+    } else {
+        fprintf(log_file, "Timestamp: %s", asctime(&time_info));
+        fflush(log_file);
     }
-
-    fprintf(log_file, "Timestamp: %s", asctime(result));
 }
 
 /**
@@ -48,21 +51,7 @@ void print_timestamp(void) {
  */
 void signal_handler(int signum) {
     (void)signum; //Unused since only SIGINT is handles
-    int error;
-
-    if ((error = stop_measurement()) != NOERR) {
-        print_timestamp();
-        fprintf(log_file, "\nFailed to stop measurements," 
-            "exited with error %d\n", error);
-        goto safe_exit;
-    }
-
-    //printf("\nStopped Measurements\n");
-
-    safe_exit:
-        fclose(log_file);
-        device_free();
-        exit(error);
+    sigint_recieved = 1;
 }
 
 /**
@@ -147,6 +136,7 @@ void connlost(void* context, char* cause) {
     (void)context; //Unused since context is defined as NULL in main()
     print_timestamp();
     fprintf(log_file, "\nConnection Lost!\nCause: %s\n", cause);
+    fflush(log_file);
 }
 
 /**
@@ -195,7 +185,6 @@ int main(int argc, char* argv[]) {
         }
     }
     
-    
 
     if ((log_file = fopen(log_filename, "a")) == NULL) {
         printf("Could not open log file!\n");
@@ -215,6 +204,7 @@ int main(int argc, char* argv[]) {
         MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS) {
             print_timestamp();
             fprintf(log_file, "Failed to create client, returned with code %d\n", client_status);
+            fflush(log_file);
             client_status = EXIT_FAILURE;
             goto exit;
     }
@@ -223,6 +213,7 @@ int main(int argc, char* argv[]) {
         connlost, msgarrvd, delivered)) != MQTTCLIENT_SUCCESS) {
             print_timestamp();
             fprintf(log_file, "Failed to set callbacks, returned with code %d\n", client_status);
+            fflush(log_file);
             client_status = EXIT_FAILURE;
             goto destroy_exit;
     }
@@ -233,6 +224,7 @@ int main(int argc, char* argv[]) {
     if ((client_status = MQTTClient_connect(client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
         print_timestamp();
         fprintf(log_file, "Failed to connect, returned with code %d\n", client_status);
+        fflush(log_file);
         client_status = EXIT_FAILURE;
         goto destroy_exit;
     }
@@ -240,6 +232,7 @@ int main(int argc, char* argv[]) {
     if ((device_status = device_init(1)) != NOERR) {
         print_timestamp();
         fprintf(log_file, "Failed to initialize device, returned with code %d\n", device_status);
+        fflush(log_file);
         client_status = EXIT_FAILURE;
         goto destroy_exit;
     }
@@ -248,6 +241,7 @@ int main(int argc, char* argv[]) {
         if ((device_status = reset() != NOERR)) {
             print_timestamp();
             fprintf(log_file, "Failed to reset device, returned with code %d\n", device_status);
+            fflush(log_file);
             goto free_device;
         }
     }
@@ -255,6 +249,7 @@ int main(int argc, char* argv[]) {
     if ((device_status = start_measurement()) != NOERR) {
         print_timestamp();
         fprintf(log_file, "Failed to start measurements, returned with code %d\n", device_status);
+        fflush(log_file);
         client_status = EXIT_FAILURE;
         goto free_device;
     }
@@ -266,6 +261,7 @@ int main(int argc, char* argv[]) {
         if ((device_status = read_data_flag(&is_ready)) != NOERR) {
             print_timestamp();
             fprintf(log_file,"Failed to get device data-ready flag, returned with code %d\n", device_status);
+            fflush(log_file);
             client_status = EXIT_FAILURE;
             goto free_device;
         }
@@ -276,9 +272,15 @@ int main(int argc, char* argv[]) {
         cJSON* root = cJSON_CreateObject();
         float data[NUM_DATAPOINTS];
 
+        //Handles when a SIGINT is signaled
+        if (sigint_recieved) {
+            goto disconnect;
+        }
+
         if ((device_status = read_into_buffer(data, NUM_DATAPOINTS)) != NOERR) {
             print_timestamp();
             fprintf(log_file, "Failed to read device data, returned with code %d\n", device_status);
+            fflush(log_file);
             client_status = EXIT_FAILURE;
             goto free_device;
         }
@@ -296,6 +298,7 @@ int main(int argc, char* argv[]) {
             &message, &token)) != MQTTCLIENT_SUCCESS) {
                 print_timestamp();
                 fprintf(log_file, "Failed to publish message, returned with code %d\n", client_status);
+                fflush(log_file);
                 client_status = EXIT_FAILURE;
                 goto free_device;
         } 
@@ -309,17 +312,22 @@ int main(int argc, char* argv[]) {
         sleep(5);
     }   
 
-    if ((client_status = MQTTClient_disconnect(client, TIMEOUT)) != MQTTCLIENT_SUCCESS) {
-        print_timestamp();
-        fprintf(log_file, "Failed to disconnect, returned with code %d\n", client_status);
-        client_status = EXIT_FAILURE;
-    }
+    //Clean-ups
+    disconnect:
+        if (MQTTClient_isConnected(client)) {
+            if ((client_status = MQTTClient_disconnect(client, TIMEOUT) != MQTTCLIENT_SUCCESS)) {
+                print_timestamp();
+                fprintf(log_file, "\nFailed to disconnect, exited with code %d\n", client_status);
+                fflush(log_file);
+                client_status = EXIT_FAILURE;
+            }
+        }
 
-    //Error clean-ups
     free_device:
         if ((device_status = stop_measurement()) != NOERR) {
             print_timestamp();
             fprintf(log_file, "Failed to stop measurements, returned with code %d\n", device_status);
+            fflush(log_file);
         }
         device_free();
 
