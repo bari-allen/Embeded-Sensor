@@ -36,7 +36,7 @@ void print_timestamp(void) {
         perror("Failed to get local time\n");
     }
 
-    fprintf(log_file, "Timestamp: %s", asctime(time_info));
+    fprintf(log_file, "Timestamp: %s", asctime(result));
 }
 
 /**
