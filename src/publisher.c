@@ -27,7 +27,7 @@ FILE* log_file;
 void print_timestamp(void) {
     time_t raw_time;
     struct tm* time_info;
-    struct tm* result;
+    struct tm* result = NULL;
 
     time(&raw_time);
     time_info = localtime_r(&raw_time, result);
@@ -47,6 +47,7 @@ void print_timestamp(void) {
  * @param signum 
  */
 void signal_handler(int signum) {
+    (void)signum; //Unused since only SIGINT is handles
     int error;
 
     if ((error = stop_measurement()) != NOERR) {
@@ -108,6 +109,7 @@ void make_json(cJSON* root, char** json, float m_c_1, float m_c_2_5, float m_c_4
  * @param token 
  */
 void delivered(void* context, MQTTClient_deliveryToken token) {
+    (void)context; //Unused since context is defined as NULL in main()
     delivered_token = token;
 }
 
@@ -123,6 +125,9 @@ void delivered(void* context, MQTTClient_deliveryToken token) {
  * @return int 
  */
 int msgarrvd(void* context, char* topic_name, int topic_len, MQTTClient_message* message) {
+    (void)context; //Unused since context is defined as NULL in main
+    (void)topic_len; //Unsed
+
     printf("Message Arrived\n");
     printf("topic: %s\n", topic_name);
     printf("message: %.*s\n", message->payloadlen, (char*)message->payload);
@@ -139,6 +144,7 @@ int msgarrvd(void* context, char* topic_name, int topic_len, MQTTClient_message*
  * @param cause 
  */
 void connlost(void* context, char* cause) {
+    (void)context; //Unused since context is defined as NULL in main()
     print_timestamp();
     fprintf(log_file, "\nConnection Lost!\nCause: %s\n", cause);
 }

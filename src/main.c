@@ -4,6 +4,8 @@
 #include <strings.h>
 
 void signal_handler(int signum) {
+    (void)signum;
+    
     int error;
 
     printf("\nClosing I2C File\n");
