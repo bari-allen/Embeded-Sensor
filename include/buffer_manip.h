@@ -107,10 +107,10 @@ int16_t read_bytes_as_int16(uint8_t* buffer);
  * out parameter
  * 
  * @param buffer a buffer of uint8_t's interpreted as chars
- * @param expected_size the expected number of characters
- * @param name the name out parameter
+ * @param word_size the expected number of characters
+ * @param word the name out parameter
  * @return an error if the data couldn't be read from the device, else NOERROR is returned
  */
-int8_t read_bytes_as_string(uint8_t* buffer, uint16_t expected_size, char* name);
+int8_t read_bytes_as_string(uint8_t* buffer, uint16_t word_size, char* word);
 
 #endif

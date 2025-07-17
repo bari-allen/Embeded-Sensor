@@ -93,19 +93,15 @@ int16_t read_bytes_as_int16(uint8_t* buffer) {
     return (int16_t)(MSB | LSB);
 }
 
-int8_t read_bytes_as_string(uint8_t* buffer, uint16_t expected_size, char* name) {
+int8_t read_bytes_as_string(uint8_t* buffer, uint16_t word_size, char* word) {
     int8_t error;
 
-    error = read_without_crc(buffer, expected_size);
+    error = read_without_crc(buffer, word_size);
     if (error != 0) {
         return error;
     }
 
-    for (int i = 0; i < expected_size; ++i) {
-        name[i] = buffer[i];
-        
-        if (buffer[i] == '\0') {break;}
-    }
+    strncpy(word, (char *)buffer, word_size);
 
     return NOERR;
 }
