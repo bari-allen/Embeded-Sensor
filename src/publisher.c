@@ -250,8 +250,15 @@ int main(int argc, char* argv[]) {
         goto free_device;
     }
 
-    //Handles when the user presses CTRL + C
-    signal(SIGINT, signal_handler);
+    struct sigaction action;
+    action.sa_handler = signal_handler;
+    sigemptyset(&action.sa_mask);
+    action.sa_flags = SA_RESTART;
+
+    if (sigaction(SIGINT, &action, NULL) != 0) {
+        fprintf(stderr, "Failed to initialize sigaction, returned with error %d\n", errno);
+        exit(errno);
+    }
 
     do {
         if ((device_status = read_data_flag(&is_ready)) != NOERR) {
