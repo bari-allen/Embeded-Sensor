@@ -49,8 +49,7 @@ void print_timestamp(void) {
  * 
  * @param signum 
  */
-void signal_handler(int signum) {
-    (void)signum; //Unused since only SIGINT is handles
+void signal_handler(int signum __attribute__((unused))) {
     sigint_recieved = 1;
 }
 
@@ -97,8 +96,7 @@ void make_json(cJSON* root, char** json, float m_c_1, float m_c_2_5, float m_c_4
  * @param context 
  * @param token 
  */
-void delivered(void* context, MQTTClient_deliveryToken token) {
-    (void)context; //Unused since context is defined as NULL in main()
+void delivered(void* context __attribute__((unused)), MQTTClient_deliveryToken token) {
     delivered_token = token;
 }
 
@@ -113,9 +111,8 @@ void delivered(void* context, MQTTClient_deliveryToken token) {
  * @param message 
  * @return int 
  */
-int msgarrvd(void* context, char* topic_name, int topic_len, MQTTClient_message* message) {
-    (void)context; //Unused since context is defined as NULL in main
-    (void)topic_len; //Unsed
+int msgarrvd(void* context __attribute__((unused)), char* topic_name, 
+            int topic_len __attribute__((unused)), MQTTClient_message* message) {
 
     printf("Message Arrived\n");
     printf("topic: %s\n", topic_name);
@@ -132,8 +129,7 @@ int msgarrvd(void* context, char* topic_name, int topic_len, MQTTClient_message*
  * @param context 
  * @param cause 
  */
-void connlost(void* context, char* cause) {
-    (void)context; //Unused since context is defined as NULL in main()
+void connlost(void* context __attribute__((unused)), char* cause) {
     print_timestamp();
     fprintf(log_file, "\nConnection Lost!\nCause: %s\n", cause);
     fflush(log_file);
