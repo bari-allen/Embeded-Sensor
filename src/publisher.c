@@ -231,7 +231,10 @@ void* sensor_worker(void* arg) {
 
     while (!sigint_recieved) {
         if ((device_status = epoll_wait(epoll_fd, &event, 1, -1)) == -1) {
-            if (errno == EINTR) {continue;}
+            if (errno == EINTR) {
+                device_status = NOERR;
+                continue;
+            }
             fprintf(log_file, "Failed the epoll_wait(), returned with error %d\n", errno);
             goto stop_measurements;
         }
@@ -263,6 +266,9 @@ void* sensor_worker(void* arg) {
     close_descriptors:
         close(epoll_fd);
         close(timer_fd);
+
+        if (device_status == NOERR)
+            pthread_exit(NULL);
     exit:
         data.error_num = device_status;
         write(pipe_fds[id][1], &data, sizeof(data));
