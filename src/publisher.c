@@ -407,7 +407,7 @@ int main(void) {
         }
 
         if (MQTTClient_isConnected(client)) {
-            if ((client_status = MQTTClient_disconnect(client, TIMEOUT) != MQTTCLIENT_SUCCESS)) {
+            if ((client_status = MQTTClient_disconnect(client, TIMEOUT)) != MQTTCLIENT_SUCCESS) {
                 print_timestamp();
                 fprintf(log_file, "\nFailed to disconnect, exited with code %d\n", client_status);
                 fflush(log_file);
