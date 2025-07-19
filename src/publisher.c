@@ -263,11 +263,14 @@ void* sensor_worker(void* arg) {
         close(epoll_fd);
         close(timer_fd);
 
-        if (device_status == NOERR)
+        if (device_status == NOERR) {
+            close(pipe_fds[id][1]);
             pthread_exit(NULL);
+        }
     exit:
         data.error_num = device_status;
         write(pipe_fds[id][1], &data, sizeof(data));
+        close(pipe_fds[id][1]);
         pthread_exit(NULL);
 }
 
@@ -349,8 +352,10 @@ int main(void) {
     }
 
     struct epoll_event events[NUM_THREADS];
+    int active_threads = NUM_THREADS;
 
-    while (!sigint_recieved) {
+    while (active_threads != 0) {
+        bool read_data = false;
         char* payload = NULL;
         cJSON* root = cJSON_CreateObject();
 
@@ -359,17 +364,26 @@ int main(void) {
         for (int i = 0; i < num_ready; ++i) {
             int index = events[i].data.u32;
             struct Sensor_Data thread_data;
-            read(pipe_fds[index][0], &thread_data, sizeof(thread_data));
+            ssize_t closed = read(pipe_fds[index][0], &thread_data, sizeof(thread_data));
 
-            if (thread_data.error_num != 0) {
-                goto disconnect;
+            if (closed == 0 || thread_data.error_num != 0) {
+                epoll_ctl(epoll_fd, EPOLL_CTL_DEL, pipe_fds[index][0], NULL);
+                close(pipe_fds[index][0]);
+                pthread_join(threads[index], NULL);
+                --active_threads;
+                continue;
             }
 
             switch (index) {
                 case 0:
                     memcpy(data, thread_data.data, NUM_DATAPOINTS * sizeof(float));
+                    read_data = true;
                     break;
             }
+        }
+
+        if (!read_data) {
+            continue;
         }
 
         make_json(root, &payload, data[0], data[1], data[2], 
@@ -400,12 +414,6 @@ int main(void) {
 
     //Clean-ups
     disconnect:
-        for (int i = 0; i < NUM_THREADS; ++i) {
-            pthread_join(threads[i], NULL);
-            close(pipe_fds[i][0]);
-            close(pipe_fds[i][1]);
-        }
-
         if (MQTTClient_isConnected(client)) {
             if ((client_status = MQTTClient_disconnect(client, TIMEOUT)) != MQTTCLIENT_SUCCESS) {
                 print_timestamp();
