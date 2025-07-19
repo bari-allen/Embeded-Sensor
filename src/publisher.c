@@ -24,7 +24,9 @@
 #define QOS 1
 #define TIMEOUT 10000L
 #define FIVE_SECONDS 5000
+#define SEN55_ADDR 0x69U
 
+const uint8_t DEVICE_ADDRS[NUM_THREADS] = {SEN55_ADDR};
 int pipe_fds[NUM_THREADS][2];
 MQTTClient_deliveryToken delivered_token;
 volatile sig_atomic_t sigint_recieved = 0;
@@ -363,6 +365,8 @@ int main(void) {
 
         for (int i = 0; i < num_ready; ++i) {
             int index = events[i].data.u32;
+            uint8_t address = DEVICE_ADDRS[index];
+
             struct Sensor_Data thread_data;
             ssize_t closed = read(pipe_fds[index][0], &thread_data, sizeof(thread_data));
 
@@ -374,8 +378,8 @@ int main(void) {
                 continue;
             }
 
-            switch (index) {
-                case 0:
+            switch (address) {
+                case SEN55_ADDR:
                     memcpy(data, thread_data.data, NUM_DATAPOINTS * sizeof(float));
                     read_data = true;
                     break;
