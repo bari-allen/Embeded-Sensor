@@ -230,7 +230,7 @@ void* sensor_worker(void* arg) {
         goto exit;
     }
 
-    if ((device_status = device_init(1) != NOERR)) {
+    if ((device_status = device_init(1)) != NOERR && device_status != EINTR) {
         print_timestamp();
         fprintf(log_file, "Unable to initialize device, returned with error %d\n", device_status);
         fflush(log_file);
