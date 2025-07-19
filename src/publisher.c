@@ -230,7 +230,7 @@ void* sensor_worker(void* arg) {
         goto exit;
     }
 
-    if ((device_status = device_init(1)) != NOERR && device_status != EINTR) {
+    if ((device_status = device_init(1)) != NOERR) {
         print_timestamp();
         fprintf(log_file, "Unable to initialize device, returned with error %d\n", device_status);
         fflush(log_file);
@@ -255,6 +255,7 @@ void* sensor_worker(void* arg) {
 
     while (!sigint_recieved) {
         if ((device_status = epoll_wait(epoll_fd, &event, 1, -1)) == -1) {
+            if (errno == EINTR) {continue;}
             fprintf(log_file, "Failed the epoll_wait(), returned with error %d\n", errno);
             goto stop_measurements;
         }
