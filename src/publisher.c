@@ -231,10 +231,6 @@ void* sensor_worker(void* arg) {
 
     while (!sigint_recieved) {
         if ((device_status = epoll_wait(epoll_fd, &event, 1, -1)) == -1) {
-            if (errno == EINTR) {
-                device_status = NOERR;
-                continue;
-            }
             fprintf(log_file, "Failed the epoll_wait(), returned with error %d\n", errno);
             goto stop_measurements;
         }
@@ -406,6 +402,8 @@ int main(void) {
     disconnect:
         for (int i = 0; i < NUM_THREADS; ++i) {
             pthread_join(threads[i], NULL);
+            close(pipe_fds[i][0]);
+            close(pipe_fds[i][1]);
         }
 
         if (MQTTClient_isConnected(client)) {
