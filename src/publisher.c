@@ -144,30 +144,6 @@ void connlost(void* context __attribute__((unused)), char* cause) {
     fflush(log_file);
 }
 
-/**
- * @brief Validates the user's inputted log file
- * 
- * @param log_filename 
- * @return int 
- */
-int validate_log_file(const char* const log_filename) {
-    regex_t regex;
-    //Excludes '/' or '.' in the file name and requires a .txt file
-    const char* regex_string = "^[^\\.\\/]+\\.txt$";
-    int value;
-
-    if ((value = regcomp(&regex, regex_string, REG_EXTENDED | REG_NOSUB) != 0)) {
-        fprintf(stderr, "Regex failed to compile\n");
-        return -1;
-    }
-
-    value = regexec(&regex, log_filename, 0, NULL, 0);
-
-    regfree(&regex);
-
-    return value;
-}
-
 struct Sensor_Data {
     int error_num;
     int num_data;
