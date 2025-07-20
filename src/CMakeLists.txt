@@ -16,7 +16,7 @@ target_include_directories(functions_lib PUBLIC ${PROJECT_SOURCE_DIR}/include)
 add_executable(main main.c)
 add_executable(publisher publisher.c)
 set_target_properties(main publisher PROPERTIES C_STANDARD 11)
-set_target_properties(main publisher PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR})
+set_target_properties(main publisher PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
 # Link the libraries
 target_link_libraries(main

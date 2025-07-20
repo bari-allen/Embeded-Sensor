@@ -1,0 +1,4 @@
+add_executable(buffer_manip_tests buffer_manip_tests.c)
+target_link_libraries(buffer_manip_tests unity buffer_manip_lib device_io_lib)
+add_test(NAME Buffer_Manip COMMAND buffer_manip_tests)
+set_target_properties(buffer_manip_tests PROPERTIES RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
