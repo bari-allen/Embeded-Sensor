@@ -80,8 +80,10 @@ void signal_handler(int signum __attribute__((unused))) {
  * @param VOC 
  * @param NOx 
  */
-void make_json(cJSON* root, char** json, float m_c_1, float m_c_2_5, float m_c_4, 
+void make_json(char** json, float m_c_1, float m_c_2_5, float m_c_4, 
     float m_c_10, float humidity, float temp, float VOC, float NOx) {
+
+        cJSON* root = cJSON_CreateObject();
         cJSON_AddNumberToObject(root, "Mass Concentration PM1.0", m_c_1);
         cJSON_AddNumberToObject(root, "Mass Concentration PM2.5", m_c_2_5);
         cJSON_AddNumberToObject(root, "Mass Concentration PM4.0", m_c_4);
@@ -359,7 +361,6 @@ int main(void) {
     while (active_threads != 0) {
         bool read_data = false;
         char* payload = NULL;
-        cJSON* root = cJSON_CreateObject();
 
         int num_ready = epoll_wait(epoll_fd, events, NUM_THREADS, FIVE_SECONDS);
 
@@ -390,7 +391,7 @@ int main(void) {
             continue;
         }
 
-        make_json(root, &payload, data[0], data[1], data[2], 
+        make_json(&payload, data[0], data[1], data[2], 
             data[3], data[4], data[5], data[6], data[7]);
 
         message.payload = payload;
