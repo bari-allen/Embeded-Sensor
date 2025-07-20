@@ -15,5 +15,7 @@
 #define INIT_ERR -5
 /*Returned when the inputted size mismatches with the expected size*/
 #define SIZE_ERR -6
+/*Returned when the inputted pointer is invalid*/
+#define PNTR_ERR -7
 
 #endif
