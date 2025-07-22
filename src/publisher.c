@@ -34,7 +34,7 @@ const uint8_t DEVICE_ADDRS[NUM_THREADS] = {SEN55_ADDR};
 int pipe_fds[NUM_THREADS][2];
 MQTTClient_deliveryToken delivered_token;
 volatile sig_atomic_t sigint_recieved = 0;
-FILE* log_file;
+FILE* LOG_FILE;
 
 /**
  * @brief Prints the current timestamp to the log file 
@@ -51,8 +51,8 @@ void print_timestamp(void) {
     if (result == NULL) {
         perror("Failed to get local time");
     } else {
-        fprintf(log_file, "Timestamp: %s", asctime(&time_info));
-        fflush(log_file);
+        fprintf(LOG_FILE, "Timestamp: %s", asctime(&time_info));
+        fflush(LOG_FILE);
     }
 }
 
@@ -154,8 +154,8 @@ int msgarrvd(void* context __attribute__((unused)), char* topic_name,
  */
 void connlost(void* context __attribute__((unused)), char* cause) {
     print_timestamp();
-    fprintf(log_file, "\nConnection Lost!\nCause: %s\n", cause);
-    fflush(log_file);
+    fprintf(LOG_FILE, "\nConnection Lost!\nCause: %s\n", cause);
+    fflush(LOG_FILE);
 }
 
 struct Sensor_Data {
@@ -166,8 +166,8 @@ struct Sensor_Data {
 int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct itimerspec* timerspec) {
     if ((*timer_fd = timerfd_create(CLOCK_MONOTONIC, 0)) == -1) {
         print_timestamp();
-        fprintf(log_file, "Failed to create timerfd, returned with error %d\n", errno);
-        fflush(log_file);
+        fprintf(LOG_FILE, "Failed to create timerfd, returned with error %d\n", errno);
+        fflush(LOG_FILE);
         return errno;
     }
 
@@ -178,15 +178,15 @@ int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct
 
     if ((timerfd_settime(*timer_fd, 0, timerspec, NULL)) < 0) {
         print_timestamp();
-        fprintf(log_file, "Failed to set timer time, returned with error %d\n", errno);
-        fflush(log_file);
+        fprintf(LOG_FILE, "Failed to set timer time, returned with error %d\n", errno);
+        fflush(LOG_FILE);
         return errno;
     }
 
     if ((*epoll_fd = epoll_create1(0)) == -1) {
         print_timestamp();
-        fprintf(log_file, "failed to create epoll, returned with error %d\n", errno);
-        fflush(log_file);
+        fprintf(LOG_FILE, "failed to create epoll, returned with error %d\n", errno);
+        fflush(LOG_FILE);
         return errno;
     }
 
@@ -194,8 +194,8 @@ int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct
     event->data.fd = *timer_fd;
     if ((epoll_ctl(*epoll_fd, EPOLL_CTL_ADD, *timer_fd, event)) == -1) {
         print_timestamp();
-        fprintf(log_file, "Failed epoll_ctl, returned with error %d\n", errno);
-        fflush(log_file);
+        fprintf(LOG_FILE, "Failed epoll_ctl, returned with error %d\n", errno);
+        fflush(LOG_FILE);
         return errno;
     }
 
@@ -220,37 +220,37 @@ void* sensor_worker(void* arg) {
 
     if ((device_status = device_init(1)) != NOERR) {
         print_timestamp();
-        fprintf(log_file, "Unable to initialize device, returned with error %d\n", device_status);
-        fflush(log_file);
+        fprintf(LOG_FILE, "Unable to initialize device, returned with error %d\n", device_status);
+        fflush(LOG_FILE);
         goto close_descriptors;
     }
 
     if ((device_status = start_measurement()) != NOERR) {
         print_timestamp();
-        fprintf(log_file, "Failed to start measurements, returned with error %d\n", device_status);
-        fflush(log_file);
+        fprintf(LOG_FILE, "Failed to start measurements, returned with error %d\n", device_status);
+        fflush(LOG_FILE);
         goto free_device;
     }
 
     do {
         if ((device_status = read_data_flag(&is_ready)) != NOERR) {
             print_timestamp();
-            fprintf(log_file, "Failed to read data-ready flag, returned with error %d\n", device_status);
-            fflush(log_file);
+            fprintf(LOG_FILE, "Failed to read data-ready flag, returned with error %d\n", device_status);
+            fflush(LOG_FILE);
             goto stop_measurements;
         }
     } while(!is_ready);
 
     while (!sigint_recieved) {
         if ((device_status = epoll_wait(epoll_fd, &event, 1, -1)) == -1) {
-            fprintf(log_file, "Failed the epoll_wait(), returned with error %d\n", errno);
+            fprintf(LOG_FILE, "Failed the epoll_wait(), returned with error %d\n", errno);
             goto stop_measurements;
         }
 
         if ((device_status = read_into_buffer(buffer, NUM_DATAPOINTS)) != NOERR) {
             print_timestamp();
-            fprintf(log_file, "Failed to read data into buffer, returned with error %d\n", device_status);
-            fflush(log_file);
+            fprintf(LOG_FILE, "Failed to read data into buffer, returned with error %d\n", device_status);
+            fflush(LOG_FILE);
             goto stop_measurements;
         }
 
@@ -265,8 +265,8 @@ void* sensor_worker(void* arg) {
     stop_measurements:
         if ((device_status = stop_measurement()) != NOERR) {
             print_timestamp();
-            fprintf(log_file, "Failed to stop measurements, returned with code %d\n", device_status);
-            fflush(log_file);
+            fprintf(LOG_FILE, "Failed to stop measurements, returned with code %d\n", device_status);
+            fflush(LOG_FILE);
         }
     free_device:
         device_free();
@@ -284,8 +284,8 @@ int disconnect(MQTTClient* client) {
     if (MQTTClient_isConnected(client)) {
         if ((client_status = MQTTClient_disconnect(*client, TIMEOUT)) != MQTTCLIENT_SUCCESS) {
             print_timestamp();
-            fprintf(log_file, "\nFailed to disconnect, exited with code %d\n", client_status);
-            fflush(log_file);
+            fprintf(LOG_FILE, "\nFailed to disconnect, exited with code %d\n", client_status);
+            fflush(LOG_FILE);
         }
     }
 
@@ -299,8 +299,8 @@ int initialize_connection(MQTTClient* client) {
     if ((client_status = MQTTClient_create(client, ADDRESS, CLIENTID, 
         MQTTCLIENT_PERSISTENCE_NONE, NULL)) != MQTTCLIENT_SUCCESS) {
             print_timestamp();
-            fprintf(log_file, "Failed to create client, returned with code %d\n", client_status);
-            fflush(log_file);
+            fprintf(LOG_FILE, "Failed to create client, returned with code %d\n", client_status);
+            fflush(LOG_FILE);
             return client_status;
         }
     
@@ -308,8 +308,8 @@ int initialize_connection(MQTTClient* client) {
     if ((client_status = MQTTClient_setCallbacks(*client, NULL, 
         connlost, msgarrvd, delivered)) != MQTTCLIENT_SUCCESS) {
             print_timestamp();
-            fprintf(log_file, "Failed to set callbacks, returned with code %d\n", client_status);
-            fflush(log_file);
+            fprintf(LOG_FILE, "Failed to set callbacks, returned with code %d\n", client_status);
+            fflush(LOG_FILE);
             return client_status;
         }
     
@@ -318,8 +318,8 @@ int initialize_connection(MQTTClient* client) {
 
     if ((client_status = MQTTClient_connect(*client, &conn_opts)) != MQTTCLIENT_SUCCESS) {
         print_timestamp();
-        fprintf(log_file, "Failed to connect, returned with code %d\n", client_status);
-        fflush(log_file);
+        fprintf(LOG_FILE, "Failed to connect, returned with code %d\n", client_status);
+        fflush(LOG_FILE);
         client_status = disconnect(client);
         return client_status;
     }
@@ -338,42 +338,18 @@ int initialize_sigaction() {
         return errno;
     }
 
-    return 0;
+    return NOERR;
 }
 
-int main(void) {
-    pthread_t threads[NUM_THREADS];
-    int epoll_fd = epoll_create1(0);
-    float data[NUM_DATAPOINTS] = {0};
-
-    if ((log_file = fopen("log.txt", "a")) == NULL) {
-        printf("Could not open log file!\n");
-        exit(EXIT_FAILURE);
-    }
-
-    MQTTClient client;
-    MQTTClient_message message = MQTTClient_message_initializer;
-    MQTTClient_deliveryToken token;
-    int client_status = MQTTCLIENT_SUCCESS;
-
-    if ((client_status = initialize_connection(&client)) != MQTTCLIENT_SUCCESS) {
-        goto destroy_exit;
-    }
-
-    if (initialize_sigaction() != 0) {
-        disconnect(&client);
-        goto destroy_exit;
-    }
-
+int initialize_threads(pthread_t* threads, const int epoll_fd) {
     for (int i = 0; i < NUM_THREADS; ++i) {
         if (pipe(pipe_fds[i]) == -1) {
-            fprintf(log_file, "Failed to create pipe\n");
-            fflush(log_file);
-            client_status = EXIT_FAILURE;
-            disconnect(&client);
-            goto destroy_exit;
+            print_timestamp();
+            fprintf(LOG_FILE, "Failed to create pipe\n");
+            fflush(LOG_FILE);
+            return -1;
         }
-
+        
         struct epoll_event event;
         event.events = EPOLLIN;
         event.data.u32 = i;
@@ -383,8 +359,44 @@ int main(void) {
         pthread_create(&threads[i], NULL, sensor_worker, id);
     }
 
+    return NOERR;
+}
+
+int main(void) {
+    //MQTT variables
+    MQTTClient client;
+    MQTTClient_message message = MQTTClient_message_initializer;
+    MQTTClient_deliveryToken token;
+    int client_status = MQTTCLIENT_SUCCESS;
+
+    //Epoll variables
+    int epoll_fd = epoll_create1(0);
     struct epoll_event events[NUM_THREADS];
+
+    //Thread variables
     int active_threads = NUM_THREADS;
+    pthread_t threads[NUM_THREADS];
+    
+    float data[NUM_DATAPOINTS] = {0};
+
+    if ((LOG_FILE = fopen("log.txt", "a")) == NULL) {
+        printf("Could not open log file!\n");
+        exit(EXIT_FAILURE);
+    }
+
+    if ((client_status = initialize_connection(&client)) != MQTTCLIENT_SUCCESS) {
+        goto destroy_exit;
+    }
+
+    if (initialize_sigaction() != NOERR) {
+        disconnect(&client);
+        goto destroy_exit;
+    }
+
+    if (initialize_threads(threads, epoll_fd) != NOERR) {
+        disconnect(&client);
+        goto destroy_exit;
+    }
 
     while (active_threads != 0) {
         bool read_data = false;
@@ -408,8 +420,8 @@ int main(void) {
 
                 if(MAKE_INT(retval) != NOERR) {
                     print_timestamp();
-                    fprintf(log_file, "Worker returned error with code %d\n", MAKE_INT(retval));
-                    fflush(log_file);
+                    fprintf(LOG_FILE, "Worker returned error with code %d\n", MAKE_INT(retval));
+                    fflush(LOG_FILE);
                 }
 
                 --active_threads;
@@ -440,8 +452,8 @@ int main(void) {
         if ((client_status = MQTTClient_publishMessage(client, TOPIC, 
             &message, &token)) != MQTTCLIENT_SUCCESS) {
                 print_timestamp();
-                fprintf(log_file, "Failed to publish message, returned with code %d\n", client_status);
-                fflush(log_file);
+                fprintf(LOG_FILE, "Failed to publish message, returned with code %d\n", client_status);
+                fflush(LOG_FILE);
                 client_status = EXIT_FAILURE;
                 disconnect(&client);
                 free(payload);
@@ -459,7 +471,7 @@ int main(void) {
 
     destroy_exit:
         MQTTClient_destroy(&client);
-        fclose(log_file);
+        fclose(LOG_FILE);
         return client_status;
 }
 
