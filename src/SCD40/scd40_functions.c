@@ -1,5 +1,4 @@
-#include "../include/scd40_functions.h"
-#include "scd40_buffer_manip.h"
+#include "../../include/SCD40/scd40_functions.h"
 
 /*******************************************************************************
 *                           Function Implementations                           *

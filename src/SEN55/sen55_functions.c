@@ -1,4 +1,4 @@
-#include "../include/sen55_functions.h"
+#include "../../include/SEN55/sen55_functions.h"
 
 /*******************************************************************************
 *                           Function Implementations                           *

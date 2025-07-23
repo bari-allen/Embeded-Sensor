@@ -1,5 +1,4 @@
-#include "../include/scd40_buffer_manip.h"
-#include "errors.h"
+#include "../../include/SCD40/scd40_buffer_manip.h"
 
 /*******************************************************************************
 *                           Function Implementations                           *

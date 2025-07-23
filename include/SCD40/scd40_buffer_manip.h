@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "scd40_device_io.h"
-#include "errors.h"
+#include "../errors.h"
 
 /*******************************************************************************
 *                              Defined Constants                               *

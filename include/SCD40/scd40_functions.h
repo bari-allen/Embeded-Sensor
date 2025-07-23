@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "scd40_buffer_manip.h"
-#include "errors.h"
+#include "../errors.h"
 #include "scd40_device_io.h"
 #include <unistd.h>
 #include <math.h>

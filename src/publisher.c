@@ -169,7 +169,7 @@ void connlost(void* context __attribute__((unused)), char* cause) {
 
 struct Sensor_Data {
     int num_data;
-    float data[SEN55_DATAPOINTS];
+    float* data;
 };
 
 int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct itimerspec* timerspec) {
@@ -213,22 +213,27 @@ int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct
 
 void* sensor_worker(void* arg) {
     int id = MAKE_INT(arg);
-    uint8_t address = DEVICE_ADDRS[id];
-    const int NUM_DATA = DATAPOINTS[id];
     int device_status, timer_fd, epoll_fd;
-    bool is_ready = false;
+
+    //Device info
+    int device_fd = 0;
+    const uint8_t ADDR = DEVICE_ADDRS[id];
+    const int NUM_DATA = DATAPOINTS[id];
+
+    //Device Read Data
     float buffer[NUM_DATA];
-    uint64_t result;
     struct Sensor_Data data = {};
+
+    //Timer data
+    uint64_t result;
     struct epoll_event event;
     struct itimerspec timerspec;
-    int fd = 0;
 
     if ((device_status = create_timer(&timer_fd, &epoll_fd, &event, &timerspec)) != 0) {
         goto exit;
     }
 
-    if ((device_status = device_init(1, address, &fd)) != NOERR) {
+    if ((device_status = device_init(1, ADDR, &device_fd)) != NOERR) {
         print_timestamp();
         fprintf(LOG_FILE, "Unable to initialize device, returned with error %d\n", device_status);
         UNLOCK_MUTEX(lock);
@@ -237,7 +242,7 @@ void* sensor_worker(void* arg) {
     }
 
     LOCK_MUTEX(lock);
-    if ((device_status = start_measurement(address, &fd)) != NOERR) {
+    if ((device_status = start_measurement(ADDR, &device_fd)) != NOERR) {
         UNLOCK_MUTEX(lock);
         print_timestamp();
         fprintf(LOG_FILE, "Failed to start measurements for device %d, returned with error %d\n", DEVICE_ADDRS[id], device_status);
@@ -247,6 +252,8 @@ void* sensor_worker(void* arg) {
     UNLOCK_MUTEX(lock);
 
     while (!sigint_recieved) {
+        bool is_ready = false;
+
         if ((device_status = epoll_wait(epoll_fd, &event, 1, -1)) == -1) {
             fprintf(LOG_FILE, "Failed the epoll_wait(), returned with error %d\n", errno);
             goto stop_measurements;
@@ -255,16 +262,16 @@ void* sensor_worker(void* arg) {
         LOCK_MUTEX(lock);
 
         do {
-        if ((device_status = read_data_flag(&is_ready, address, &fd)) != NOERR) {
-            UNLOCK_MUTEX(lock);
-            print_timestamp();
-            fprintf(LOG_FILE, "Failed to read data-ready flag, returned with error %d\n", device_status);
-            fflush(LOG_FILE);
-            goto stop_measurements;
-        }
-    } while(!is_ready);
+            if ((device_status = read_data_flag(&is_ready, ADDR, &device_fd)) != NOERR) {
+                UNLOCK_MUTEX(lock);
+                print_timestamp();
+                fprintf(LOG_FILE, "Failed to read data-ready flag, returned with error %d\n", device_status);
+                fflush(LOG_FILE);
+                goto stop_measurements;
+            }
+        } while(!is_ready);
 
-        if ((device_status = read_into_buffer(buffer, NUM_DATA, address, &fd)) != NOERR) {
+        if ((device_status = read_into_buffer(buffer, NUM_DATA, ADDR, &device_fd)) != NOERR) {
             UNLOCK_MUTEX(lock);
             print_timestamp();
             fprintf(LOG_FILE, "Failed to read data into buffer, returned with error %d\n", device_status);
@@ -274,7 +281,7 @@ void* sensor_worker(void* arg) {
         UNLOCK_MUTEX(lock);
 
         data.num_data = NUM_DATA;
-        memcpy(data.data, buffer, NUM_DATA * sizeof(float));
+        data.data = buffer;
 
         write(pipe_fds[id][1], &data, sizeof(data));
 
@@ -283,14 +290,14 @@ void* sensor_worker(void* arg) {
 
     stop_measurements:
         LOCK_MUTEX(lock);
-        if ((device_status = stop_measurement(address, &fd)) != NOERR) {
+        if ((device_status = stop_measurement(ADDR, &device_fd)) != NOERR) {
             print_timestamp();
             fprintf(LOG_FILE, "Failed to stop measurements, returned with code %d\n", device_status);
             fflush(LOG_FILE);
         }
         UNLOCK_MUTEX(lock);
     free_device:
-        device_free(address, &fd);
+        device_free(ADDR, &device_fd);
     close_descriptors:
         close(epoll_fd);
         close(timer_fd);

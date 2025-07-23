@@ -1,4 +1,4 @@
-#include "../include/sen55_device_io.h"
+#include "../../include/SEN55/sen55_device_io.h"
 
 /*******************************************************************************
 *                          Function Implementations                            *

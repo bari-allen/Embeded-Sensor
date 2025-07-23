@@ -3,7 +3,7 @@
 
 #include <stdint.h>
 #include "sen55_device_io.h"
-#include "errors.h"
+#include "../errors.h"
 
 /*******************************************************************************
 *                              Defined Constants                               *

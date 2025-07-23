@@ -1,4 +1,4 @@
-#include "../include/sen55_buffer_manip.h"
+#include "../../include/SEN55/sen55_buffer_manip.h"
 
 /*******************************************************************************
 *                           Function Implementations                           *

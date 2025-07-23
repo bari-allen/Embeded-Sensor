@@ -4,7 +4,7 @@
 #include <stdbool.h>
 #include <stdint.h>
 #include "sen55_buffer_manip.h"
-#include "errors.h"
+#include "../errors.h"
 #include "sen55_device_io.h"
 #include <unistd.h>
 #include <math.h>

@@ -1,4 +1,4 @@
-#include "../include/scd40_device_io.h"
+#include "../../include/SCD40/scd40_device_io.h"
 
 /*******************************************************************************
 *                          Function Implementations                            *
