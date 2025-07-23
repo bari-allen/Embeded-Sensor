@@ -17,5 +17,7 @@
 #define SIZE_ERR -6
 /*Returned when the inputted pointer is invalid*/
 #define PNTR_ERR -7
+/*Returned when an invalid device address is inputted*/
+#define ADDR_ERR -8
 
 #endif

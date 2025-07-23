@@ -1,107 +1,92 @@
 #include "../include/buffer_manip.h"
+#include "scd40_device_io.h"
 
 /*******************************************************************************
 *                           Function Implementations                           *
 *******************************************************************************/
 
-uint8_t generate_crc(uint8_t* data) {
-    uint16_t current_byte;
-    uint8_t crc = 0xFF;
-    uint8_t bit;
-
-    for (current_byte = 0; current_byte < WORD_SIZE; ++current_byte) {
-        crc ^= data[current_byte];
-        for (bit = 0; bit < 8; ++bit) {
-            if (HAS_LEADING_ONE(crc)) {
-                crc = (crc << 1) ^ CRC8_POLYNOMIAL;
-            } else {
-                crc = (crc << 1);
-            }
-        }
+uint8_t generate_crc(uint8_t* data, uint8_t device_addr) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_generate_crc(data);
+        case SCD40_ADDRESS:
+            return scd40_generate_crc(data);
+        default:
+            return ADDR_ERR;
     }
-
-    return crc;
 }
 
-int8_t check_crc(uint8_t* data, uint8_t checksum) {
-    if (generate_crc(data) != checksum) {
-        return CRC_ERR;
+int8_t check_crc(uint8_t* data, uint8_t checksum, uint8_t device_addr) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_check_crc(data, checksum);
+        case SCD40_ADDRESS:
+            return scd40_check_crc(data, checksum);
+        default:
+            return ADDR_ERR;
     }
-
-    return NOERR;
 }
 
-uint16_t add_uint32_to_buffer(uint8_t* buffer, uint32_t offset, uint32_t data) {
-    buffer[offset++] = (uint8_t)((data & 0xFF000000) >> 24);
-    buffer[offset++] = (uint8_t)((data & 0x00FF0000) >> 16);
-    buffer[offset] = generate_crc(&buffer[offset - WORD_SIZE]);
-    ++offset;
-
-    buffer[offset++] = (uint8_t)((data & 0x0000FF00) >> 8);
-    buffer[offset++] = (uint8_t)((data & 0x000000FF));
-    buffer[offset] = generate_crc(&buffer[offset - WORD_SIZE]);
-    ++offset;
-
-    return offset;
-}
-
-uint32_t add_command_to_buffer(uint8_t* buffer, uint32_t offset, uint16_t data) {
-    buffer[offset++] = (uint8_t)((data & 0xFF00) >> 8);
-    buffer[offset++] = (uint8_t)((data & 0x00FF));
-
-    return offset;
-}
-
-int8_t read_without_crc(uint8_t* buffer, uint16_t expected_size) {
-    int error;
-    uint32_t i, j;
-    uint16_t size = (expected_size / WORD_SIZE) * (WORD_SIZE + CRC_LENGTH);
-
-    if (expected_size % WORD_SIZE != 0) {
-        return OFFSET_ERR;
+uint16_t add_uint32_to_buffer(uint8_t* buffer, uint32_t offset, uint32_t data, uint8_t device_addr) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_add_uint32_to_buffer(buffer, offset, data);
+        case SCD40_ADDRESS:
+            return scd40_add_uint32_to_buffer(buffer, offset, data);
+        default:
+            return ADDR_ERR;
     }
-
-    error = device_read(buffer, size);
-    if (error != 0) {
-        return error;
-    }
-
-    for (i = 0, j = 0; i < size; i += WORD_SIZE + CRC_LENGTH) {
-        error = check_crc(&buffer[i], buffer[i + WORD_SIZE]);
-        if (error != 0) {
-            return error;
-        }
-
-        buffer[j++] = buffer[i];
-        buffer[j++] = buffer[i + 1];
-    }
-
-    return NOERR;
 }
 
-uint16_t read_bytes_as_uint16(uint8_t* buffer) {
-    uint16_t MSB = buffer[0] << 8;
-    uint16_t LSB = buffer[1];
-    
-    return MSB | LSB;
-}
-
-int16_t read_bytes_as_int16(uint8_t* buffer) {
-    uint16_t MSB = buffer[0] << 8;
-    uint16_t LSB = buffer[1];
-
-    return (int16_t)(MSB | LSB);
-}
-
-int8_t read_bytes_as_string(uint8_t* buffer, uint16_t word_size, char* word) {
-    int8_t error;
-
-    error = read_without_crc(buffer, word_size);
-    if (error != 0) {
-        return error;
+uint32_t add_command_to_buffer(uint8_t* buffer, uint32_t offset, uint16_t data, uint8_t device_addr) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_add_command_to_buffer(buffer, offset, data);
+        case SCD40_ADDRESS:
+            return scd40_add_command_to_buffer(buffer, offset, data);
+        default:
+            return ADDR_ERR;
     }
+}
 
-    strncpy(word, (char *)buffer, word_size);
+int8_t read_without_crc(uint8_t* buffer, uint16_t expected_size, uint8_t device_addr, int* fd) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_read_without_crc(buffer, expected_size, fd);
+        case SCD40_ADDRESS:
+            return scd40_read_without_crc(buffer, expected_size, fd);
+        default:
+            return ADDR_ERR;
+    }
+}
 
-    return NOERR;
+uint16_t read_bytes_as_uint16(uint8_t* buffer, uint8_t device_addr) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_read_bytes_as_uint16(buffer);
+        case SCD40_ADDRESS:
+            return scd40_read_bytes_as_uint16(buffer);
+        default:
+            return ADDR_ERR;
+    }
+}
+
+int16_t read_bytes_as_int16(uint8_t* buffer, uint8_t device_addr) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_read_bytes_as_int16(buffer);
+        case SCD40_ADDRESS:
+            return scd40_read_bytes_as_int16(buffer);
+        default:
+            return ADDR_ERR;
+    }
+}
+
+int8_t read_bytes_as_string(uint8_t* buffer, uint16_t word_size, char* word, uint8_t device_addr, int* fd) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_read_bytes_as_string(buffer, word_size, word, fd);
+        default:
+            return ADDR_ERR;
+    }
 }

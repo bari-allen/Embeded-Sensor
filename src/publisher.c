@@ -12,29 +12,37 @@
 #include <cjson/cJSON.h>
 #include <signal.h>
 #include "../include/address.h"
+#include "scd40_device_io.h"
+#include "scd40_functions.h"
+#include "sen55_functions.h"
 #include <time.h>
 #include <sys/epoll.h>
 #include <sys/timerfd.h>
 #include <pthread.h>
 #include <regex.h>
 
-#define NUM_THREADS 1
+#define NUM_THREADS 2
 #define CLIENTID "sensor_pub"
 #define TOPIC "sensors/data"
 #define QOS 1
 #define TIMEOUT 10000L
 #define FIVE_SECONDS 5000
 #define SEN55_ADDR 0x69U
+#define SCD40_ADDR 0x62U
 
 
 #define MAKE_VOID(x) ((void* )(uintptr_t)x)
 #define MAKE_INT(x) ((int)(uintptr_t)x)
+#define LOCK_MUTEX(x) (pthread_mutex_lock(&x))
+#define UNLOCK_MUTEX(x) (pthread_mutex_unlock(&x))
 
-const uint8_t DEVICE_ADDRS[NUM_THREADS] = {SEN55_ADDR};
+const uint8_t DEVICE_ADDRS[NUM_THREADS] = {SCD40_ADDR, SEN55_ADDR};
+const uint8_t DATAPOINTS[NUM_THREADS] = {SCD40_DATAPOINTS, SEN55_DATAPOINTS};
 int pipe_fds[NUM_THREADS][2];
 MQTTClient_deliveryToken delivered_token;
 volatile sig_atomic_t sigint_recieved = 0;
 FILE* LOG_FILE;
+pthread_mutex_t lock;
 
 /**
  * @brief Prints the current timestamp to the log file 
@@ -85,7 +93,7 @@ void signal_handler(int signum __attribute__((unused))) {
  * @param NOx 
  */
 int make_json(char** json, float m_c_1, float m_c_2_5, float m_c_4, 
-    float m_c_10, float humidity, float temp, float VOC, float NOx) {
+    float m_c_10, float humidity, float temp, float VOC, float NOx, float C02) {
 
         if (json == NULL) {
             return PNTR_ERR;
@@ -100,6 +108,7 @@ int make_json(char** json, float m_c_1, float m_c_2_5, float m_c_4,
         cJSON_AddNumberToObject(root, "Ambient Temperature", temp);
         cJSON_AddNumberToObject(root, "VOC Index", VOC);
         cJSON_AddNumberToObject(root, "NOx Index", NOx);
+        cJSON_AddNumberToObject(root, "CO2", C02);
 
         char* json_str = cJSON_Print(root);
 
@@ -160,7 +169,7 @@ void connlost(void* context __attribute__((unused)), char* cause) {
 
 struct Sensor_Data {
     int num_data;
-    float data[NUM_DATAPOINTS];
+    float data[SEN55_DATAPOINTS];
 };
 
 int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct itimerspec* timerspec) {
@@ -203,43 +212,39 @@ int create_timer(int* timer_fd, int* epoll_fd, struct epoll_event* event, struct
 }
 
 void* sensor_worker(void* arg) {
+    int id = MAKE_INT(arg);
+    uint8_t address = DEVICE_ADDRS[id];
+    const int NUM_DATA = DATAPOINTS[id];
     int device_status, timer_fd, epoll_fd;
     bool is_ready = false;
-    float buffer[NUM_DATAPOINTS];
-    int id;
+    float buffer[NUM_DATA];
     uint64_t result;
-    struct Sensor_Data data;
+    struct Sensor_Data data = {};
     struct epoll_event event;
     struct itimerspec timerspec;
-
-    id = MAKE_INT(arg);
+    int fd = 0;
 
     if ((device_status = create_timer(&timer_fd, &epoll_fd, &event, &timerspec)) != 0) {
         goto exit;
     }
 
-    if ((device_status = device_init(1)) != NOERR) {
+    if ((device_status = device_init(1, address, &fd)) != NOERR) {
         print_timestamp();
         fprintf(LOG_FILE, "Unable to initialize device, returned with error %d\n", device_status);
+        UNLOCK_MUTEX(lock);
         fflush(LOG_FILE);
         goto close_descriptors;
     }
 
-    if ((device_status = start_measurement()) != NOERR) {
+    LOCK_MUTEX(lock);
+    if ((device_status = start_measurement(address, &fd)) != NOERR) {
+        UNLOCK_MUTEX(lock);
         print_timestamp();
-        fprintf(LOG_FILE, "Failed to start measurements, returned with error %d\n", device_status);
+        fprintf(LOG_FILE, "Failed to start measurements for device %d, returned with error %d\n", DEVICE_ADDRS[id], device_status);
         fflush(LOG_FILE);
         goto free_device;
     }
-
-    do {
-        if ((device_status = read_data_flag(&is_ready)) != NOERR) {
-            print_timestamp();
-            fprintf(LOG_FILE, "Failed to read data-ready flag, returned with error %d\n", device_status);
-            fflush(LOG_FILE);
-            goto stop_measurements;
-        }
-    } while(!is_ready);
+    UNLOCK_MUTEX(lock);
 
     while (!sigint_recieved) {
         if ((device_status = epoll_wait(epoll_fd, &event, 1, -1)) == -1) {
@@ -247,15 +252,29 @@ void* sensor_worker(void* arg) {
             goto stop_measurements;
         }
 
-        if ((device_status = read_into_buffer(buffer, NUM_DATAPOINTS)) != NOERR) {
+        LOCK_MUTEX(lock);
+
+        do {
+        if ((device_status = read_data_flag(&is_ready, address, &fd)) != NOERR) {
+            UNLOCK_MUTEX(lock);
+            print_timestamp();
+            fprintf(LOG_FILE, "Failed to read data-ready flag, returned with error %d\n", device_status);
+            fflush(LOG_FILE);
+            goto stop_measurements;
+        }
+    } while(!is_ready);
+
+        if ((device_status = read_into_buffer(buffer, NUM_DATA, address, &fd)) != NOERR) {
+            UNLOCK_MUTEX(lock);
             print_timestamp();
             fprintf(LOG_FILE, "Failed to read data into buffer, returned with error %d\n", device_status);
             fflush(LOG_FILE);
             goto stop_measurements;
         }
+        UNLOCK_MUTEX(lock);
 
-        data.num_data = NUM_DATAPOINTS;
-        memcpy(data.data, buffer, NUM_DATAPOINTS * sizeof(float));
+        data.num_data = NUM_DATA;
+        memcpy(data.data, buffer, NUM_DATA * sizeof(float));
 
         write(pipe_fds[id][1], &data, sizeof(data));
 
@@ -263,13 +282,15 @@ void* sensor_worker(void* arg) {
     }
 
     stop_measurements:
-        if ((device_status = stop_measurement()) != NOERR) {
+        LOCK_MUTEX(lock);
+        if ((device_status = stop_measurement(address, &fd)) != NOERR) {
             print_timestamp();
             fprintf(LOG_FILE, "Failed to stop measurements, returned with code %d\n", device_status);
             fflush(LOG_FILE);
         }
+        UNLOCK_MUTEX(lock);
     free_device:
-        device_free();
+        device_free(address, &fd);
     close_descriptors:
         close(epoll_fd);
         close(timer_fd);
@@ -342,6 +363,8 @@ int initialize_sigaction() {
 }
 
 int initialize_threads(pthread_t* threads, const int epoll_fd) {
+    pthread_mutex_init(&lock, NULL);
+
     for (int i = 0; i < NUM_THREADS; ++i) {
         if (pipe(pipe_fds[i]) == -1) {
             print_timestamp();
@@ -377,7 +400,7 @@ int main(void) {
     int active_threads = NUM_THREADS;
     pthread_t threads[NUM_THREADS];
     
-    float data[NUM_DATAPOINTS] = {0};
+    float data[SEN55_DATAPOINTS + SCD40_DATAPOINTS] = {0};
 
     if ((LOG_FILE = fopen("log.txt", "a")) == NULL) {
         printf("Could not open log file!\n");
@@ -430,7 +453,11 @@ int main(void) {
 
             switch (address) {
                 case SEN55_ADDR:
-                    memcpy(data, thread_data.data, NUM_DATAPOINTS * sizeof(float));
+                    memcpy(data, thread_data.data, SEN55_DATAPOINTS * sizeof(float));
+                    read_data = true;
+                    break;
+                case SCD40_ADDR:
+                    memcpy(data + SEN55_DATAPOINTS, thread_data.data, SCD40_DATAPOINTS * sizeof(float));
                     read_data = true;
                     break;
             }
@@ -441,7 +468,7 @@ int main(void) {
         }
 
         (void)make_json(&payload, data[0], data[1], data[2], 
-            data[3], data[4], data[5], data[6], data[7]);
+            data[3], data[4], data[5], data[6], data[7], data[8]);
 
         message.payload = payload;
         message.payloadlen = (int)strlen(payload);
@@ -472,6 +499,7 @@ int main(void) {
     destroy_exit:
         MQTTClient_destroy(&client);
         fclose(LOG_FILE);
+        pthread_mutex_destroy(&lock);
         return client_status;
 }
 

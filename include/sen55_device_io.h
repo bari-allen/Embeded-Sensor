@@ -1,8 +1,22 @@
-#ifndef DEVICE_IO_H
-#define DEVICE_IO_H
+#ifndef SEN55_DEVICE_IO_H
+#define SEN55_DEVICE_IO_H
 
-#include "sen55_device_io.h"
-#include "scd40_device_io.h"
+#include <stdio.h>
+#include <stdlib.h>
+#include <stdint.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <string.h>
+#include <sys/ioctl.h>
+#include <errno.h>
+#include "errors.h"
+#include <linux/i2c-dev.h>
+
+/*******************************************************************************
+*                              Defined Constants                               *
+*******************************************************************************/
+
+#define SEN55_ADDRESS 0x69U
 
 /*******************************************************************************
 *                            Function Definitions                              *
@@ -14,13 +28,13 @@
  * @param adapter_num the I2C adapter to initialize
  * @return int 0 is successful or INIT_FAILED if unsuccessful
  */
-int device_init(uint32_t adapter_num, uint8_t device_addr, int* fd);
+int sen55_device_init(uint32_t adapter_num, int* fd);
 
 /**
  * @brief Closes the I2C adapter
  * 
  */
-int8_t device_free(uint8_t device_addr, int* fd);
+void sen55_device_free(int* fd);
 
 /**
  * @brief Writes the count number of data from data to the I2C device
@@ -29,7 +43,7 @@ int8_t device_free(uint8_t device_addr, int* fd);
  * @param count the amount of data to be written
  * @return 0 if successful or WRITE_FAILED if unsuccessful
  */
-int8_t device_write(uint8_t* data, uint16_t count, uint8_t device_addr, int* fd);
+int8_t sen55_device_write(uint8_t* data, uint16_t count, int* fd);
 
 /**
  * @brief Reads the count number of data from the I2C device to data
@@ -38,6 +52,6 @@ int8_t device_write(uint8_t* data, uint16_t count, uint8_t device_addr, int* fd)
  * @param count the amount of data to be read
  * @return 0 if successful or READ_FAILED otherwise
  */
-int8_t device_read(uint8_t* data, uint16_t count, uint8_t device_addr, int* fd);
+int8_t sen55_device_read(uint8_t* data, uint16_t count, int* fd);
 
 #endif

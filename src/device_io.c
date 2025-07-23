@@ -1,47 +1,53 @@
 #include "../include/device_io.h"
 
-static int i2c_bus = 0;
-
 /*******************************************************************************
 *                          Function Implementations                            *
 *******************************************************************************/
 
-int device_init(uint32_t adapter_num) {
-    char filename[20];
-    snprintf(filename, 19, "/dev/i2c-%d", adapter_num);
-    i2c_bus = open(filename, O_RDWR);
-
-    if (i2c_bus < 0) {
-        return INIT_ERR;
+int device_init(uint32_t adapter_num, uint8_t device_addr, int* fd) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_device_init(adapter_num, fd);
+        case SCD40_ADDRESS:
+            return scd40_device_init(adapter_num, fd);
+        default:
+            return ADDR_ERR;
     }
-
-    if (ioctl(i2c_bus, I2C_SLAVE, DEVICE_ADDRESS) < 0) {
-        return INIT_ERR;
-    }
-
-    return 0;
 }
 
-void device_free(void) {
-    if (i2c_bus >= 0) {
-        close(i2c_bus);
+int8_t device_free(uint8_t device_addr, int* fd) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            sen55_device_free(fd);
+            break;
+        case SCD40_ADDRESS:
+            scd40_device_free(fd);
+            break;
+        default:
+            return ADDR_ERR;
     }
 
-    i2c_bus = 0;
+    return NOERR;
 }
 
-int8_t device_write(uint8_t* data, uint16_t count) {
-    if (write(i2c_bus, data, count) != count) {
-        return WRITE_ERR;
+int8_t device_write(uint8_t* data, uint16_t count, uint8_t device_addr, int* fd) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_device_write(data, count, fd);
+        case SCD40_ADDRESS:
+            return scd40_device_write(data, count, fd);
+        default:
+            return ADDR_ERR;
     }
-
-    return 0;
 }
 
-int8_t device_read(uint8_t* data, uint16_t count) {
-    if (read(i2c_bus, data, count) != count) {
-        return READ_ERR;
+int8_t device_read(uint8_t* data, uint16_t count, uint8_t device_addr, int* fd) {
+    switch (device_addr) {
+        case SEN55_ADDRESS:
+            return sen55_device_read(data, count, fd);
+        case SCD40_ADDRESS:
+            return scd40_device_read(data, count, fd);
+        default:
+            return ADDR_ERR;
     }
-
-    return 0;
 }
