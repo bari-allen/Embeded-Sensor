@@ -45,12 +45,6 @@ target_link_libraries(publisher
     buffer_manip_lib
     device_io_lib
     functions_lib
-    sen55_device_io_lib
-    sen55_buffer_manip_lib
-    sen55_functions_lib
-    scd40_device_io_lib
-    scd40_buffer_manip_lib
-    scd40_functions_lib
     eclipse-paho-mqtt-c::paho-mqtt3c
     cjson
     )
