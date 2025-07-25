@@ -15,6 +15,7 @@
  * in the buffer
  * 
  * @param buffer array of bytes 
+ * @param device_addr the device's hex address on the I2C bus
  * @return the checksum from the first two bytes in the buffer
  */
 uint8_t generate_crc(uint8_t* buffer, uint8_t device_addr);
@@ -27,6 +28,7 @@ uint8_t generate_crc(uint8_t* buffer, uint8_t device_addr);
  * 
  * @param data array of bytes
  * @param checksum the checksum returned by the I2C device
+ * @param device_addr the device's hex address on the I2C bus
  * @return CRCERROR if the checksums don't match and NOERROR if they do
  */
 int8_t check_crc(uint8_t* data, uint8_t checksum, uint8_t device_addr);
@@ -40,6 +42,7 @@ int8_t check_crc(uint8_t* data, uint8_t checksum, uint8_t device_addr);
  * @param buffer buffer to write the uint32_t
  * @param offset the number of elements already in the buffer
  * @param data the uint32_t to be written to the buffer
+ * @param device_addr the device's hex address on the I2C bus
  * @return the offset with the uint32_t added
  */
 uint16_t add_uint32_to_buffer(uint8_t* buffer, uint32_t offset, uint32_t data, uint8_t device_addr);
@@ -52,6 +55,7 @@ uint16_t add_uint32_to_buffer(uint8_t* buffer, uint32_t offset, uint32_t data, u
  * @param buffer the buffer to write the address pointer 
  * @param offset the number of elements already in the buffer
  * @param data the address pointer to add to the buffer
+ * @param device_addr the device's hex address on the I2C bus
  * @return the offset with the address pointer added
  */
 uint32_t add_command_to_buffer(uint8_t* buffer, uint32_t offset, uint16_t data, uint8_t device_addr);
@@ -64,6 +68,7 @@ uint32_t add_command_to_buffer(uint8_t* buffer, uint32_t offset, uint16_t data, 
  * 
  * @param buffer the buffer to write the data from the I2C device
  * @param expected_size the expected number of bytes in the buffer without the checksum
+ * @param device_addr the device's hex address on the I2C bus
  * @return an error if the data couldn't be written, read, or the offset is wrong, else 
             NOERROR is returned
  */
@@ -75,6 +80,7 @@ int8_t read_without_crc(uint8_t* buffer, uint16_t expected_size, uint8_t device_
  * Shifts the first element to the left by 8 bits and ORs it with the second element
  * 
  * @param buffer a buffer of uint8_t's 
+ * @param device_addr the device's hex address on the I2C bus
  * @return the first 2 bytes as a uint16_t
  */
 uint16_t read_bytes_as_uint16(uint8_t* buffer, uint8_t device_addr);
@@ -86,6 +92,7 @@ uint16_t read_bytes_as_uint16(uint8_t* buffer, uint8_t device_addr);
  * then casts it to an int16_t
  * 
  * @param buffer a buffer of uint8_t's
+ * @param device_addr the device's hex address on the I2C bus
  * @return the first 2 bytes as an int16_t
  */
 int16_t read_bytes_as_int16(uint8_t* buffer, uint8_t device_addr);
@@ -96,9 +103,12 @@ int16_t read_bytes_as_int16(uint8_t* buffer, uint8_t device_addr);
  * Reads the bytes up to the null terminating character as chars and adds them to the name
  * out parameter
  * 
+ * This function only works for the SEN55 device 
+ *
  * @param buffer a buffer of uint8_t's interpreted as chars
  * @param word_size the expected number of characters
  * @param word the name out parameter
+ * @param device_addr the device's hex address on the I2C bus
  * @return an error if the data couldn't be read from the device, else NOERROR is returned
  */
 int8_t read_bytes_as_string(uint8_t* buffer, uint16_t word_size, char* word, uint8_t device_addr, int* fd);

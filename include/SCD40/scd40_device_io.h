@@ -26,13 +26,15 @@
  * @brief Initializes the hardware and software components of the given I2C adapter
  * 
  * @param adapter_num the I2C adapter to initialize
+ * @param fd the out parameter file descriptor for the I2C device
  * @return int 0 is successful or INIT_FAILED if unsuccessful
  */
 int scd40_device_init(uint32_t adapter_num, int* fd);
 
 /**
- * @brief Closes the I2C adapter
- * 
+ * @brief Closes the I2C adapter for the inputted file descriptor
+ *
+ * @param fd the file descriptor of the I2C device 
  */
 void scd40_device_free(int* fd);
 
@@ -41,6 +43,7 @@ void scd40_device_free(int* fd);
  * 
  * @param data the data to be written
  * @param count the amount of data to be written
+ * @param fd the file descriptor of the I2C device 
  * @return 0 if successful or WRITE_FAILED if unsuccessful
  */
 int8_t scd40_device_write(uint8_t* data, uint16_t count, int* fd);
@@ -50,6 +53,7 @@ int8_t scd40_device_write(uint8_t* data, uint16_t count, int* fd);
  * 
  * @param data where the data will be written to
  * @param count the amount of data to be read
+ * @param fd the file descriptor of the I2C device 
  * @return 0 if successful or READ_FAILED otherwise
  */
 int8_t scd40_device_read(uint8_t* data, uint16_t count, int* fd);

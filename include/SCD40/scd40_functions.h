@@ -24,12 +24,39 @@
 *                           Function Definitions                               *
 *******************************************************************************/
 
+/**
+ * @brief Writes the start_measurement command to the I2C device
+ * 
+ * @param fd the file descriptor of the I2C device
+ * @return an error if one is reached, NOERR otherwise
+ */
 int8_t scd40_start_measurement(int* fd);
 
+/**
+ * @brief Writes the stop_measurement command to the I2C device
+ * 
+ * @param fd the file descriptor of the I2C device
+ * @return an error if one is reached, NOERR otherwise
+ */
 int8_t scd40_stop_measurement(int* fd);
 
+/**
+ * @brief Reads the data ready flag from the I2C device
+ * 
+ * @param is_ready the out parameter where the data ready flag is stored
+ * @param fd the opened file descriptor of the I2C device
+ * @return an error if one is reached, NOERR otherwise
+ */
 int8_t scd40_read_data_flag(bool* is_ready, int* fd);
 
+/**
+ * @brief Reads the data from the device into the buffer
+ * 
+ * @param data the buffer where the data will be stored
+ * @param buffer_size the number of datapoints read from the device
+ * @param fd the opened file descriptor of the I2C device
+ * @return an error if one is reached, NOERR otherwise
+ */
 int8_t scd40_read_into_buffer(float* data, size_t buffer_size, int* fd);
 
 #endif

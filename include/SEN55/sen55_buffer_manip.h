@@ -74,6 +74,7 @@ uint32_t sen55_add_command_to_buffer(uint8_t* buffer, uint32_t offset, uint16_t 
  * 
  * @param buffer the buffer to write the data from the I2C device
  * @param expected_size the expected number of bytes in the buffer without the checksum
+ * @param fd the oepend file descriptor of the I2C device
  * @return an error if the data couldn't be written, read, or the offset is wrong, else 
             NOERROR is returned
  */
@@ -109,6 +110,7 @@ int16_t sen55_read_bytes_as_int16(uint8_t* buffer);
  * @param buffer a buffer of uint8_t's interpreted as chars
  * @param word_size the expected number of characters
  * @param word the name out parameter
+ * @param fd the opened file descriptor of the device
  * @return an error if the data couldn't be read from the device, else NOERROR is returned
  */
 int8_t sen55_read_bytes_as_string(uint8_t* buffer, uint16_t word_size, char* word, int* fd);
