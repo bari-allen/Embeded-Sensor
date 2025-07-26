@@ -19,7 +19,7 @@
 *                              Defined Constants                               *
 *******************************************************************************/
 
-#define NUM_THREADS 2
+#define DEVICE_COUNT 2
 #define CLIENTID "sensor_pub"
 #define TOPIC "sensors/data"
 #define QOS 1
@@ -27,9 +27,10 @@
 #define WAIT_TIME 5
 #define SEN55_ADDR 0x69U
 #define SCD40_ADDR 0x62U
+#define ADAPTER_NUM 1
 
-static const uint8_t DEVICE_ADDRS[NUM_THREADS] = {SCD40_ADDR, SEN55_ADDR};
-static const uint8_t DATAPOINTS[NUM_THREADS] = {SCD40_DATAPOINTS, SEN55_DATAPOINTS};
+static const uint8_t DEVICE_ADDRS[DEVICE_COUNT] = {SCD40_ADDR, SEN55_ADDR};
+static const uint8_t DATAPOINTS[DEVICE_COUNT] = {SCD40_DATAPOINTS, SEN55_DATAPOINTS};
 
 /*******************************************************************************
 *                                Macro Functions                               *
@@ -47,7 +48,7 @@ static const uint8_t DATAPOINTS[NUM_THREADS] = {SCD40_DATAPOINTS, SEN55_DATAPOIN
 //Globals for threading
 volatile sig_atomic_t sigint_recieved = 0;
 pthread_mutex_t lock;
-int pipe_fds[NUM_THREADS][2];
+int pipe_fds[DEVICE_COUNT][2];
 
 //Globals for the MQTT Server and logging
 MQTTClient_deliveryToken delivered_token;
@@ -261,7 +262,7 @@ void* sensor_worker(void* arg) {
         goto exit;
     }
 
-    if ((device_status = device_init(1, ADDR, &device_fd)) != NOERR) {
+    if ((device_status = device_init(ADAPTER_NUM, ADDR, &device_fd)) != NOERR) {
         print_timestamp();
         fprintf(LOG_FILE, "Unable to initialize device %d, " 
                 "returned with error %d\n", DEVICE_ADDRS[id], device_status);
@@ -432,7 +433,7 @@ int initialize_sigaction() {
 int initialize_threads(pthread_t* threads, const int epoll_fd) {
     pthread_mutex_init(&lock, NULL);
 
-    for (int i = 0; i < NUM_THREADS; ++i) {
+    for (int i = 0; i < DEVICE_COUNT; ++i) {
         if (pipe(pipe_fds[i]) == -1) {
             print_timestamp();
             fprintf(LOG_FILE, "Failed to create pipe\n");
@@ -461,11 +462,11 @@ int main(void) {
 
     //Epoll variables
     int epoll_fd = epoll_create1(0);
-    struct epoll_event events[NUM_THREADS];
+    struct epoll_event events[DEVICE_COUNT];
 
     //Thread variables
-    int active_threads = NUM_THREADS;
-    pthread_t threads[NUM_THREADS];
+    int active_threads = DEVICE_COUNT;
+    pthread_t threads[DEVICE_COUNT];
     bool connection_terminated = false;
     
     float data[SEN55_DATAPOINTS + SCD40_DATAPOINTS] = {0};
@@ -493,7 +494,7 @@ int main(void) {
         bool read_data = false;
         char* payload = NULL;
 
-        int num_ready = epoll_wait(epoll_fd, events, NUM_THREADS, -1);
+        int num_ready = epoll_wait(epoll_fd, events, DEVICE_COUNT, -1);
 
         for (int i = 0; i < num_ready; ++i) {
             int index = events[i].data.u32;
