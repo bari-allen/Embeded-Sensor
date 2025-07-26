@@ -43,7 +43,15 @@ cd bin
 
 ## Features
 This project allows you to monitor the Mass Concentration PM(1.0, 2.5, 4.0, 10), Ambient Humidity, Ambient Temperature, VOC and NOx indecies, and the CO2 concentration. The data is read from the sensor every five seconds, which can be changed by changing the WAIT_TIME constant in the publisher.c file.<br>
-To stop the program, simply press CTRL + C or type killall -2 publisher. This will notify the program the clean up and safely close down. Failure to do this or using killall -9 publisher will cause the sensors to not stop measurements which WILL cause issues when restarting the program.
+To stop the program, simply press CTRL + C or type:
+```bash
+killall -2 publisher
+```
+ This will notify the program the clean up and safely close down. Failure to do this or using:
+ ```bash
+ killall -9 publisher
+```
+will cause the sensors to not stop measurements which WILL cause issues when restarting the program.
 
 ### Images
 Using a visualizer like Grafana in conjunction with Mosquitto, you can expect the data to look similar to this: <br>\
