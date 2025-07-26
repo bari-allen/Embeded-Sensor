@@ -397,7 +397,7 @@ int initialize_connection(MQTTClient* client) {
         print_timestamp();
         fprintf(LOG_FILE, "Failed to connect, returned with code %d\n", client_status);
         fflush(LOG_FILE);
-        client_status = disconnect(client);
+        disconnect(client);
         return client_status;
     }
     
