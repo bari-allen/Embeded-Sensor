@@ -37,6 +37,7 @@ make
 ```
 Finally, to run the program run the following commands:
 ```bash
+cd ../
 cd bin
 ./publisher
 ```
