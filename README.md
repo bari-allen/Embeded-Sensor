@@ -41,6 +41,10 @@ cd ../
 cd bin
 ./publisher
 ```
+If you want the code to run in the background without the terminal open, type:
+```bash
+nohup ./publisher > log.txt&
+```
 
 ## Features
 This project allows you to monitor the Mass Concentration PM(1.0, 2.5, 4.0, 10), Ambient Humidity, Ambient Temperature, VOC and NOx indecies, and the CO2 concentration. The data is read from the sensor every five seconds, which can be changed by changing the WAIT_TIME constant in the publisher.c file.<br>
